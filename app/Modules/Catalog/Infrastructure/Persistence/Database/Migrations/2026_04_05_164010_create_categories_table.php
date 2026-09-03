@@ -11,10 +11,7 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->foreignUuid('parent_id')
-                ->nullable()
-                ->constrained('categories')
-                ->nullOnDelete();
+            $table->uuid('parent_id')->nullable();
 
             $table->uuid('user_id')->nullable();
 
@@ -33,6 +30,13 @@ return new class extends Migration
             $table->unique(['slug', 'user_id'], 'unique_slug_user');
 
             $table->index(['type', 'sort']);
+        });
+
+        Schema::table('categories', function (Blueprint $table) {
+            $table->foreign('parent_id')
+                ->references('id')
+                ->on('categories')
+                ->nullOnDelete();
         });
     }
 

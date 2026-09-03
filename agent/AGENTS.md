@@ -35,8 +35,8 @@ make backend-shell
 # То же напрямую
 docker exec q_php sh
 
-# Команда для доступа к бд (sqlite-файл)
-docker exec q_php sh -c 'php -r "\$db=new PDO(\"sqlite:/var/www/backend/database/database.sqlite\");"'
+# Команда для доступа к бд (PostgreSQL)
+docker exec q_postgres psql -U qwick -d qwick -c '\dt'
 
 # Команда получения логов
 make logs

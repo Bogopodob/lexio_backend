@@ -5,7 +5,8 @@
 |---|---|
 | PHP | 8.5 (`q_php`, образ `qwick-php`) |
 | Node | 22 (frontend) |
-| БД (dev/test) | sqlite — файл `database/database.sqlite`, тесты — `:memory:` |
+| БД (основная) | PostgreSQL 17 (`q_postgres`, база `qwick`) — миграции/сиды/импорт идут через неё |
+| БД (тесты) | sqlite `:memory:` (см. `phpunit.xml`) |
 
 ## Фреймворки
 | Назначение | Фреймворк | Версия |
@@ -41,7 +42,7 @@
 - **ramsey/uuid** (`^4.9`, прямая зависимость) — `Uuid::uuid4()` в сидах/репозиториях.
 
 ## Инфраструктура
-- Docker: `q_php` (PHP 8.5), `q_nginx` (:8080), postgres/rabbitmq в `infractructure/docker-compose.yml` зарезервированы, backend их **не использует** (sqlite).
+- Docker: `q_php` (PHP 8.5), `q_nginx` (:8080), `q_postgres` (PostgreSQL 17, :5432) — основная БД backend.
 - CI: `.github/workflows/ci.yml` — backend (install → pint → migrate → seed → test), frontend (install → build).
 
 ## Правило добавления новых зависимостей

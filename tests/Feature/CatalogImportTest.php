@@ -6,6 +6,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Category;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
+use App\Shared\Laravel\Infrastructure\Persistence\Eloquent\Models\Translation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -58,6 +59,56 @@ class CatalogImportTest extends TestCase
 
         $this->assertSame(1, Entry::query()->count());
         $this->assertSame(4, EntryTranslation::query()->count());
+    }
+
+    public function test_import_from_export_format_with_number_and_source_file(): void
+    {
+        $category = Category::query()->create(['slug' => 'borba', 'type' => 'theme']);
+
+        Translation::query()->create([
+            'entity_type' => Category::class,
+            'entity_id' => $category->id,
+            'locale' => 'ru',
+            'field' => 'name',
+            'value' => 'Борьба',
+        ]);
+
+        Storage::disk('public')->put(
+            'words/export.csv',
+            "\xEF\xBB\xBFnumber;name;transcription;translation;part;name_file\n1;Be;\"[biː]\";Быть;Глаголы;Борьба.xlsx\n"
+        );
+
+        $this->artisan('catalog:import-words', ['--file' => 'words/export.csv'])
+            ->assertSuccessful();
+
+        $entry = Entry::query()->first();
+        $this->assertNotNull($entry);
+        $this->assertSame(1, (int) $entry->frequency_rank);
+
+        $this->assertSame(1, DB::table('entry_category')->where('entry_id', $entry->id)->count());
+
+        $en = EntryTranslation::query()->where('text', 'be')->first();
+        $this->assertNotNull($en);
+        $this->assertSame('biː', $en->transcription);
+        $this->assertSame('verb', $en->part_of_speech);
+    }
+
+    public function test_import_matches_case_insensitively(): void
+    {
+        Storage::disk('public')->put(
+            'words/case.csv',
+            "name;transcription;translation\nRun;[rʌn];бегать\n"
+        );
+        Storage::disk('public')->put(
+            'words/case2.csv',
+            "name;transcription;translation\nRUN;[rʌn];Бегать\n"
+        );
+
+        $this->artisan('catalog:import-words', ['--file' => 'words/case.csv'])->assertSuccessful();
+        $this->artisan('catalog:import-words', ['--file' => 'words/case2.csv'])->assertSuccessful();
+
+        $this->assertSame(1, Entry::query()->count());
+        $this->assertSame(2, EntryTranslation::query()->count());
     }
 
     public function test_dry_run_writes_nothing(): void
