@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'jwt.auth' => \App\Shared\Laravel\Infrastructure\Security\Middleware\JwtAuthenticateMiddleware::class,
+            'user.owner' => \App\Shared\Laravel\Infrastructure\Security\Middleware\EnsureRouteUserMatchesToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

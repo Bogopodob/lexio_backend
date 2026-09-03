@@ -11,12 +11,13 @@
 ## Задачи
 
 ### [NEXT-001] Auth на пользовательских роутах
-- **Подробное описание**: `GET/PUT /api/users/{userId}/profile`, `/api/learning/users/{userId}/*`, `/api/library/users/{userId}/*` сейчас открыты (только `api`-middleware). Закрыть auth (sanctum/JWT по `Auth`-модулю), `userId` брать из токена, а не из URL. Без этого любой может читать/писать чужие профили и библиотеки.
+- **Подробное описание**: `GET/PUT /api/users/{userId}/profile`, `/api/learning/users/{userId}/*`, `/api/library/users/{userId}/*` были открыты (только `api`-middleware). Закрыты JWT: `jwt.auth` (проверка подписи/срока/iss/aud) + `user.owner` (URL-`userId` обязан совпадать с токеном).
 - **Приоритет**: high
-- **Статус**: open
-- **Связанные файлы**: `app/Modules/{User,Learning,Library}/routes/*.php`, Takes (проверка владения уже есть в UseCases — оставить как второй рубеж)
-- **Ограничения**: не ломать контракт ответов; фронт пока без токенов — вводить вместе с фронт-интеграцией
-- **Ожидаемый результат**: чужие `userId` возвращают 401/403; свои UseCases-тесты дополнены кейсом «без токена»
+- **Статус**: done
+- **Связанные файлы**: `bootstrap/app.php` (алиасы), `AuthProvider` (бинд `TokenGeneratorInterface`), `JwtTokenGenerator` (ключ как у issuer + толерантные claims), `JwtTokenIssuer` (добавлен `nbf` — без него `StrictValidAt` режектил все логин-токены), `EnsureRouteUserMatchesToken`, роуты User/Learning/Library, `/api/user` переведён с `auth:sanctum` на `jwt.auth`, `User::$casts` без `hashed` (убрано двойное хэширование пароля)
+- **Ограничения**: контракт ответов не менялся; Catalog остался публичным (системный словарь)
+- **Ожидаемый результат**: аноним — 401, чужой userId — 403, свой — 200 (проверено вживую через nginx + 7 новых тестов)
+- **Что сделано**: матрица 401/200/403/401 подтверждена curl; тесты 35/35 (136 assertions); pint PASS (280 файлов)
 
 ### [NEXT-002] Фронт Профиля на API
 - **Подробное описание**: `Profile.tsx` сейчас на моках. Подключить: загрузка/создание профиля (`PUT /api/users/{id}/profile`: `city`, `birth_date` как `Y-m-d`, `tags`), список/создание/обновление языковых профилей (`/api/learning/users/{id}/profiles`), статистика (`.../stats`). Формат даты уже совместим с `BirthDatePicker`.

@@ -38,9 +38,10 @@ final class User extends Authenticatable
      */
     protected function casts(): array
     {
+        // NOTE: no 'hashed' cast on purpose — the Auth domain
+        // (PasswordValueObject) already stores a hash here.
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
         ];
     }
 }

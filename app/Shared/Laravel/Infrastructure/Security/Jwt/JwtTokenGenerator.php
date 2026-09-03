@@ -32,11 +32,13 @@ class JwtTokenGenerator implements TokenGeneratorInterface
 
     public function __construct()
     {
-        $key = InMemory::plainText(config('app.key'));
+        // Same key handling as Auth JwtTokenIssuer: base64 APP_KEYs are decoded.
+        $key = (string) config('app.key');
+        $cleanKey = str_starts_with($key, 'base64:') ? base64_decode(substr($key, 7), true) ?: $key : $key;
 
         $this->config = Configuration::forSymmetricSigner(
             new Sha256,
-            $key
+            InMemory::plainText($cleanKey)
         );
 
         $this->issuer = config('app.url');
@@ -114,7 +116,8 @@ class JwtTokenGenerator implements TokenGeneratorInterface
             return new TokenPayloadDTO(
                 id: Uuid::fromString($claims->get('sub')),
                 email: new Email($claims->get('email')),
-                abilities: $claims->get('abilities'),
+                // Auth login tokens carry only sub/email/name: the rest is optional.
+                abilities: (array) $claims->get('abilities', []),
                 ipAddress: $claims->get('ip'),
                 userAgent: $claims->get('ua'),
                 issuedAt: $issuedAt

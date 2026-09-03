@@ -3,7 +3,7 @@
 use App\Modules\Learning\Infrastructure\Http\Controllers\LearningController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('learning')->group(function (): void {
+Route::prefix('learning')->middleware(['jwt.auth', 'user.owner'])->group(function (): void {
     Route::get('/users/{userId}/profiles', [LearningController::class, 'index']);
     Route::post('/users/{userId}/profiles', [LearningController::class, 'start']);
     Route::patch('/users/{userId}/profiles/{profileId}', [LearningController::class, 'update']);

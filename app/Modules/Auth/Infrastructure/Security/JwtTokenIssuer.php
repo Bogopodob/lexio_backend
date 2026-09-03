@@ -38,6 +38,7 @@ final class JwtTokenIssuer implements TokenIssuerInterface
             ->relatedTo((string) $user->id)
             ->identifiedBy(bin2hex(random_bytes(16)))
             ->issuedAt($now)
+            ->canOnlyBeUsedAfter($now)
             ->expiresAt($expiresAt)
             ->withClaim('email', (string) $user->email)
             ->withClaim('name', $user->name)

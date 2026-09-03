@@ -142,7 +142,12 @@ class LearningTest extends TestCase
 
     public function test_start_learning_endpoint(): void
     {
-        $response = $this->postJson("/api/learning/users/{$this->userId}/profiles", [
+        $registered = $this->postJson('/api/register', [
+            'email' => 'endpoint@example.com',
+            'password' => 'secret123',
+        ])->json('data');
+
+        $response = $this->withToken($registered['token'])->postJson("/api/learning/users/{$registered['user']['id']}/profiles", [
             'target_language_id' => $this->en,
             'native_language_id' => $this->ru,
             'level' => 'B1',

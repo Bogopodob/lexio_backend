@@ -76,7 +76,15 @@ class LibraryTest extends TestCase
 
     public function test_save_and_list_phrases_via_endpoint(): void
     {
-        $created = $this->postJson("/api/library/users/{$this->userId}/phrases", [
+        $registered = $this->postJson('/api/register', [
+            'email' => 'lib@example.com',
+            'password' => 'secret123',
+        ])->json('data');
+
+        $userId = $registered['user']['id'];
+        $token = $registered['token'];
+
+        $created = $this->withToken($token)->postJson("/api/library/users/{$userId}/phrases", [
             'phrase_type' => 'example',
             'translations' => [
                 ['language_id' => $this->en, 'text' => 'World peace'],
@@ -86,7 +94,7 @@ class LibraryTest extends TestCase
 
         $created->assertCreated()->assertJsonPath('success', true);
 
-        $listed = $this->getJson("/api/library/users/{$this->userId}/phrases?language_id={$this->ru}");
+        $listed = $this->withToken($token)->getJson("/api/library/users/{$userId}/phrases?language_id={$this->ru}");
 
         $listed->assertOk()
             ->assertJsonCount(1, 'data')
