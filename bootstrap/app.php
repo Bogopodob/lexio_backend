@@ -1,5 +1,7 @@
 <?php
 
+use App\Shared\Laravel\Infrastructure\Security\Middleware\EnsureRouteUserMatchesToken;
+use App\Shared\Laravel\Infrastructure\Security\Middleware\JwtAuthenticateMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,8 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'jwt.auth' => \App\Shared\Laravel\Infrastructure\Security\Middleware\JwtAuthenticateMiddleware::class,
-            'user.owner' => \App\Shared\Laravel\Infrastructure\Security\Middleware\EnsureRouteUserMatchesToken::class,
+            'jwt.auth' => JwtAuthenticateMiddleware::class,
+            'user.owner' => EnsureRouteUserMatchesToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

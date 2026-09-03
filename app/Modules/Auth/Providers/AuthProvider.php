@@ -14,8 +14,10 @@ use App\Modules\Auth\Infrastructure\Persistence\Eloquent\EloquentAuthUserReposit
 use App\Modules\Auth\Infrastructure\Security\JwtAccessTokenVerifier;
 use App\Modules\Auth\Infrastructure\Security\JwtTokenIssuer;
 use App\Modules\Auth\Infrastructure\Services\CacheOtpCodeStore;
+use App\Modules\Auth\Infrastructure\Services\CacheRevokedTokenStore;
 use App\Modules\Auth\Infrastructure\Services\ConfigCountryAuthPolicyResolver;
 use App\Modules\Auth\Infrastructure\Services\LaravelEmailOtpSender;
+use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\RevokedTokenStoreInterface;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\TokenGeneratorInterface;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\JwtTokenGenerator;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +35,7 @@ final class AuthProvider extends ServiceProvider
         $this->app->singleton(OtpCodeStoreInterface::class, CacheOtpCodeStore::class);
         $this->app->singleton(EmailOtpSenderInterface::class, LaravelEmailOtpSender::class);
         $this->app->singleton(TokenGeneratorInterface::class, JwtTokenGenerator::class);
+        $this->app->singleton(RevokedTokenStoreInterface::class, CacheRevokedTokenStore::class);
     }
 
     public function boot(): void

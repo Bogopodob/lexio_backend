@@ -2,6 +2,7 @@
 
 namespace App\Shared\Laravel\Infrastructure\Security\Middleware;
 
+use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\RevokedTokenStoreInterface;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\TokenGeneratorInterface;
 use Closure;
 use Illuminate\Auth\GenericUser;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\Response as ResponseHttpCode;
 final readonly class JwtAuthenticateMiddleware
 {
     public function __construct(
-        private TokenGeneratorInterface $tokenGenerator
+        private TokenGeneratorInterface $tokenGenerator,
+        private RevokedTokenStoreInterface $revokedTokens,
     ) {}
 
     public function handle(Request $request, Closure $next)
@@ -33,6 +35,13 @@ final readonly class JwtAuthenticateMiddleware
             return response()->json([
                 'message' => 'Unauthenticated',
                 'error' => 'Invalid or expired token',
+            ], ResponseHttpCode::HTTP_UNAUTHORIZED);
+        }
+
+        if ($this->revokedTokens->isRevoked(hash('sha256', $token))) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+                'error' => 'Token revoked',
             ], ResponseHttpCode::HTTP_UNAUTHORIZED);
         }
 

@@ -17,4 +17,7 @@ Route::prefix('auth')->group(function (): void {
 
     // Token verification
     Route::post('/verify-token', [AuthController::class, 'verifyAccessToken']);
+
+    // Logout (revokes the token immediately)
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('jwt.auth');
 });

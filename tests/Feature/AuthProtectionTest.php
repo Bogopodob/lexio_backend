@@ -82,6 +82,33 @@ class AuthProtectionTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_logout_revokes_token_immediately(): void
+    {
+        $user = $this->register('a@example.com');
+
+        $this->withToken($user['token'])
+            ->getJson("/api/users/{$user['id']}/profile")
+            ->assertOk();
+
+        $this->withToken($user['token'])
+            ->postJson('/api/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('data.revoked', true);
+
+        $this->withToken($user['token'])
+            ->getJson("/api/users/{$user['id']}/profile")
+            ->assertUnauthorized();
+
+        $this->withToken($user['token'])
+            ->getJson('/api/auth/me')
+            ->assertUnauthorized();
+    }
+
+    public function test_logout_without_token_is_rejected(): void
+    {
+        $this->postJson('/api/auth/logout')->assertUnauthorized();
+    }
+
     public function test_invalid_token_is_rejected(): void
     {
         $user = $this->register('a@example.com');

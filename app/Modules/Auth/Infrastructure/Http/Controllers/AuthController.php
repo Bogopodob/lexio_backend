@@ -7,6 +7,7 @@ use App\Modules\Auth\Infrastructure\Http\Requests\VerifyAccessTokenRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\VerifyEmailCodeRequest;
 use App\Modules\Auth\Infrastructure\Http\Takes\GetAuthInitTake;
 use App\Modules\Auth\Infrastructure\Http\Takes\GetCountryAuthPolicyTake;
+use App\Modules\Auth\Infrastructure\Http\Takes\LogoutTake;
 use App\Modules\Auth\Infrastructure\Http\Takes\RequestEmailCodeTake;
 use App\Modules\Auth\Infrastructure\Http\Takes\VerifyAccessTokenTake;
 use App\Modules\Auth\Infrastructure\Http\Takes\VerifyEmailCodeTake;
@@ -23,6 +24,7 @@ final class AuthController extends Controller
         private readonly GetAuthInitTake $authInitTake,
         private readonly GetCountryAuthPolicyTake $countryAuthPolicyTake,
         private readonly VerifyAccessTokenTake $verifyAccessTokenTake,
+        private readonly LogoutTake $logoutTake,
     ) {}
 
     public function init(Request $request): JsonResponse
@@ -51,5 +53,10 @@ final class AuthController extends Controller
     public function verifyAccessToken(VerifyAccessTokenRequest $request): JsonResponse
     {
         return $this->verifyAccessTokenTake->handle($request);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        return $this->logoutTake->handle($request);
     }
 }

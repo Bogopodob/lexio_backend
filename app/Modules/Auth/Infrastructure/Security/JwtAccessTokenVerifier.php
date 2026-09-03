@@ -4,6 +4,7 @@ namespace App\Modules\Auth\Infrastructure\Security;
 
 use App\Modules\Auth\Domain\Entities\VerifiedAccessToken;
 use App\Modules\Auth\Domain\Ports\AccessTokenVerifierInterface;
+use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\RevokedTokenStoreInterface;
 use DateTimeImmutable;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
@@ -15,8 +16,9 @@ final class JwtAccessTokenVerifier implements AccessTokenVerifierInterface
 {
     private Configuration $jwt;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly ?RevokedTokenStoreInterface $revokedTokens = null,
+    ) {
         $key = (string) config('app.key');
         $cleanKey = str_starts_with($key, 'base64:') ? base64_decode(substr($key, 7), true) ?: $key : $key;
 
@@ -50,6 +52,10 @@ final class JwtAccessTokenVerifier implements AccessTokenVerifierInterface
             }
 
             if ($expiresAt <= new DateTimeImmutable) {
+                return null;
+            }
+
+            if ($this->revokedTokens !== null && $this->revokedTokens->isRevoked(hash('sha256', $token))) {
                 return null;
             }
 
