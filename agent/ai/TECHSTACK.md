@@ -1,0 +1,49 @@
+# Tech Stack
+
+## Языки и рантайм
+| Компонент | Версия |
+|---|---|
+| PHP | 8.5 (`q_php`, образ `qwick-php`) |
+| Node | 22 (frontend) |
+| БД (dev/test) | sqlite — файл `database/database.sqlite`, тесты — `:memory:` |
+
+## Фреймворки
+| Назначение | Фреймворк | Версия |
+|---|---|---|
+| Backend | Laravel | ^13.0 |
+| Frontend | React + Vite | ^19.2 / ^7.1 |
+| Стили фронта | Tailwind CSS | ^4.1 |
+| UI-кит фронта | HeroUI | ^3.0 |
+| Анимации фронта | framer-motion | ^12.38 |
+
+## Библиотеки backend
+| Библиотека | Версия | Назначение |
+|---|---|---|
+| lcobucci/clock | ^3.5 | общая реализация времени |
+| lcobucci/jwt | ^5.6 | выпуск/проверка JWT access-токенов (модуль Auth) |
+| laravel/sanctum | ^4.0 | guard для `auth:sanctum` роутов |
+| laravel-lang/lang | ^15.28 | локализация |
+| avadim/fast-excel-reader | ^3.0 | чтение xlsx-словарей (`catalog:import-words`) |
+| laravel/tinker | ^3.0 | отладка |
+
+## Библиотеки backend (dev)
+| Библиотека | Версия | Назначение |
+|---|---|---|
+| laravel/pint | ^1.27 | code style (`./vendor/bin/pint --test app database tests routes`) |
+| phpunit/phpunit | ^12.5 | тесты (`php artisan test`, sqlite memory) |
+| vimeo/psalm | ^6.15 | статический анализ |
+| fakerphp/faker | ^1.23 | фабрики для тестов |
+| mockery/mockery | ^1.6 | моки в тестах |
+
+## Важные зависимости и почему они важны
+- **lcobucci/jwt** — выпуск и проверка access-токенов проходят только через него (`JwtTokenIssuer`, `JwtAccessTokenVerifier`).
+- **avadim/fast-excel-reader** — единственный разрешённый парсер xlsx для импорта словарей.
+- **ramsey/uuid** (`^4.9`, прямая зависимость) — `Uuid::uuid4()` в сидах/репозиториях.
+
+## Инфраструктура
+- Docker: `q_php` (PHP 8.5), `q_nginx` (:8080), postgres/rabbitmq в `infractructure/docker-compose.yml` зарезервированы, backend их **не использует** (sqlite).
+- CI: `.github/workflows/ci.yml` — backend (install → pint → migrate → seed → test), frontend (install → build).
+
+## Правило добавления новых зависимостей
+Любая новая библиотека — только после согласования с пользователем.
+Агент может предложить, но не должен ставить пакет самостоятельно без подтверждения.

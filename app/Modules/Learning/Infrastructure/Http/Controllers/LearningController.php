@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Modules\Learning\Infrastructure\Http\Controllers;
+
+use App\Modules\Learning\Infrastructure\Http\Requests\StartLearningRequest;
+use App\Modules\Learning\Infrastructure\Http\Requests\SubmitReviewRequest;
+use App\Modules\Learning\Infrastructure\Http\Requests\UpdateProfileRequest;
+use App\Modules\Learning\Infrastructure\Http\Takes\DueReviewsTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\GetStatsTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\ListProfilesTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\StartLearningTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\SubmitReviewTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\UpdateProfileTake;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+final class LearningController extends Controller
+{
+    public function __construct(
+        private readonly StartLearningTake $startLearningTake,
+        private readonly ListProfilesTake $listProfilesTake,
+        private readonly UpdateProfileTake $updateProfileTake,
+        private readonly SubmitReviewTake $submitReviewTake,
+        private readonly DueReviewsTake $dueReviewsTake,
+        private readonly GetStatsTake $getStatsTake,
+    ) {}
+
+    public function start(string $userId, StartLearningRequest $request): JsonResponse
+    {
+        return $this->startLearningTake->handle($userId, $request);
+    }
+
+    public function index(string $userId): JsonResponse
+    {
+        return $this->listProfilesTake->handle($userId);
+    }
+
+    public function update(string $userId, string $profileId, UpdateProfileRequest $request): JsonResponse
+    {
+        return $this->updateProfileTake->handle($userId, $profileId, $request);
+    }
+
+    public function review(string $userId, string $profileId, SubmitReviewRequest $request): JsonResponse
+    {
+        return $this->submitReviewTake->handle($userId, $profileId, $request);
+    }
+
+    public function due(string $userId, string $profileId, Request $request): JsonResponse
+    {
+        return $this->dueReviewsTake->handle($userId, $profileId, $request);
+    }
+
+    public function stats(string $userId, string $profileId): JsonResponse
+    {
+        return $this->getStatsTake->handle($userId, $profileId);
+    }
+}
