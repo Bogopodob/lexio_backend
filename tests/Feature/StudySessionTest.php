@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\DemoContentSeeder;
 use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\LanguageSeeder;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryMeaning;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningCommand;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningUseCase;
@@ -131,6 +134,89 @@ class StudySessionTest extends TestCase
         $this->assertSame('finished', $final['status']);
         $this->assertSame($total, $final['answered']);
         $this->assertSame(1, $final['correct']);
+    }
+
+    public function test_availability_counts(): void
+    {
+        $before = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/availability"
+        );
+
+        $before->assertOk();
+        $newCount = $before->json('data.new');
+        $this->assertGreaterThanOrEqual(1, $newCount);
+        $this->assertSame(0, $before->json('data.due'));
+
+        $sessionId = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 1]
+        )->json('data.id');
+
+        $card = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/answer",
+            ['learnable_id' => $card['learnable_id'], 'quality' => 5]
+        )->assertOk();
+
+        // reviewed word leaves the "new" pool (due comes only after its day passes)
+        $after = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/availability"
+        )->json('data');
+
+        $this->assertSame($newCount - 1, $after['new']);
+        $this->assertSame(0, $after['due']);
+    }
+
+    public function test_session_offset_skips_first_words(): void
+    {
+        $en = Language::query()->where('code', 'en')->value('id');
+
+        foreach (['alpha', 'bravo', 'charlie'] as $i => $word) {
+            $entry = Entry::query()->create([
+                'level' => 'A1',
+                'frequency_rank' => 100 + $i,
+            ]);
+            $meaning = EntryMeaning::query()->create([
+                'entry_id' => $entry->id,
+                'note' => $word,
+            ]);
+            EntryTranslation::query()->create([
+                'entry_id' => $entry->id,
+                'meaning_id' => $meaning->id,
+                'language_id' => $en,
+                'text' => $word,
+            ]);
+        }
+
+        $first = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 1, 'offset' => 0]
+        )->json('data');
+
+        // Read the first card before the next session abandons this one.
+        $firstCard = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$first['id']}/next"
+        )->json('data.card');
+
+        $shifted = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 1, 'offset' => 1]
+        )->json('data');
+
+        $shiftedCard = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$shifted['id']}/next"
+        )->json('data.card');
+
+        $this->assertNotSame($firstCard['learnable_id'], $shiftedCard['learnable_id']);
+
+        // Offset beyond the pool yields nothing to learn.
+        $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'offset' => 100000]
+        )->assertStatus(422);
     }
 
     public function test_guest_cannot_study(): void

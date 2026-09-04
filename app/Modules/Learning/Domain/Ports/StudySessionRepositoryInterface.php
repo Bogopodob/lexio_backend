@@ -42,8 +42,11 @@ interface StudySessionRepositoryInterface
 
     /**
      * Entries the profile has never reviewed, optionally filtered.
+     * Ordered by frequency rank; $offset skips the first N (1-based position = offset + 1).
      *
      * @return list<array{learnable_type: string, learnable_id: string}>
      */
-    public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit): array;
+    public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit, int $offset = 0): array;
+
+    public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int;
 }

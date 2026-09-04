@@ -22,4 +22,5 @@ Route::prefix('learning')->middleware(['jwt.auth', 'user.owner'])->group(functio
     Route::get('/users/{userId}/sessions/{sessionId}/next', [LearningController::class, 'nextCard']);
     Route::post('/users/{userId}/sessions/{sessionId}/answer', [LearningController::class, 'answerCard']);
     Route::post('/users/{userId}/sessions/{sessionId}/finish', [LearningController::class, 'finishSession']);
+    Route::get('/users/{userId}/profiles/{profileId}/availability', [LearningController::class, 'availability']);
 });

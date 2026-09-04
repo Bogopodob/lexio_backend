@@ -25,6 +25,7 @@ final readonly class StartSessionUseCase
 
         $limit = max(1, min(50, $command->limit));
         $source = in_array($command->source, ['due', 'new', 'mixed'], true) ? $command->source : 'mixed';
+        $offset = max(0, $command->offset);
 
         $deck = [];
 
@@ -35,7 +36,7 @@ final readonly class StartSessionUseCase
         }
 
         if ($source !== 'due' && count($deck) < $limit) {
-            foreach ($this->sessions->findNewEntries($command->profileId, $command->categoryId, $command->level, $limit - count($deck)) as $fresh) {
+            foreach ($this->sessions->findNewEntries($command->profileId, $command->categoryId, $command->level, $limit - count($deck), $offset) as $fresh) {
                 $deck[] = $fresh;
             }
         }

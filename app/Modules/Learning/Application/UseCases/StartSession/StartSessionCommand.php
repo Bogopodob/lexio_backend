@@ -11,5 +11,6 @@ final readonly class StartSessionCommand
         public ?string $categoryId = null,
         public ?string $level = null,
         public int $limit = 20,
+        public int $offset = 0,
     ) {}
 }

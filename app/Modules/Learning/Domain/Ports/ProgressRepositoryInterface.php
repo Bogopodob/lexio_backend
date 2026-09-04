@@ -17,6 +17,8 @@ interface ProgressRepositoryInterface
 
     public function countReviewed(string $profileId): int;
 
+    public function countDue(string $profileId): int;
+
     public function countReviewedByType(string $profileId, string $learnableType): int;
 
     /**

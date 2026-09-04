@@ -25,6 +25,7 @@ final readonly class StartSessionTake
                 categoryId: $request->validated('category_id'),
                 level: $request->validated('level'),
                 limit: (int) ($request->validated('limit') ?? 20),
+                offset: (int) ($request->validated('offset') ?? 0),
             )
         );
 

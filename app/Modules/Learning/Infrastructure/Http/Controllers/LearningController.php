@@ -13,6 +13,7 @@ use App\Modules\Learning\Infrastructure\Http\Takes\DeleteGoalTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\DueReviewsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\EvaluateAchievementsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\FinishSessionTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\GetAvailabilityTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetNextCardTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetStatsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListAchievementsTake;
@@ -49,6 +50,7 @@ final class LearningController extends Controller
         private readonly AnswerCardTake $answerCardTake,
         private readonly ListSessionsTake $listSessionsTake,
         private readonly FinishSessionTake $finishSessionTake,
+        private readonly GetAvailabilityTake $getAvailabilityTake,
     ) {}
 
     public function start(string $userId, StartLearningRequest $request): JsonResponse
@@ -139,5 +141,10 @@ final class LearningController extends Controller
     public function finishSession(string $userId, string $sessionId): JsonResponse
     {
         return $this->finishSessionTake->handle($userId, $sessionId);
+    }
+
+    public function availability(string $userId, string $profileId, Request $request): JsonResponse
+    {
+        return $this->getAvailabilityTake->handle($userId, $profileId, $request);
     }
 }

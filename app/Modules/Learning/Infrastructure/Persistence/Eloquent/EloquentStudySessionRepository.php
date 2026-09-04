@@ -189,7 +189,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         };
     }
 
-    public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit): array
+    public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit, int $offset = 0): array
     {
         $query = DB::table('entries')
             ->leftJoin('user_progresses', function ($join) use ($profileId) {
@@ -205,11 +205,29 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             })
             ->orderByRaw('entries.frequency_rank ASC NULLS LAST')
             ->limit(max(1, min(100, $limit)))
+            ->offset(max(0, $offset))
             ->select('entries.id');
 
         return $query->get()
             ->map(fn ($r) => ['learnable_type' => 'entry', 'learnable_id' => (string) $r->id])
             ->all();
+    }
+
+    public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int
+    {
+        return DB::table('entries')
+            ->leftJoin('user_progresses', function ($join) use ($profileId) {
+                $join->on('user_progresses.learnable_id', '=', 'entries.id')
+                    ->where('user_progresses.profile_id', '=', $profileId)
+                    ->where('user_progresses.learnable_type', '=', 'entry');
+            })
+            ->whereNull('user_progresses.id')
+            ->when($level !== null, fn ($q) => $q->where('entries.level', $level))
+            ->when($categoryId !== null, function ($q) use ($categoryId) {
+                $q->join('entry_category', 'entry_category.entry_id', '=', 'entries.id')
+                    ->where('entry_category.category_id', $categoryId);
+            })
+            ->count();
     }
 
     private function entryCard(string $entryId, string $target, string $native): ?StudyCard

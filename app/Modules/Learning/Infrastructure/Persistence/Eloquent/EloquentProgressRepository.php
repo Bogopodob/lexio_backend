@@ -61,6 +61,16 @@ final class EloquentProgressRepository implements ProgressRepositoryInterface
         return ProgressModel::query()->where('profile_id', $profileId)->count();
     }
 
+    public function countDue(string $profileId): int
+    {
+        return ProgressModel::query()
+            ->where('profile_id', $profileId)
+            ->where(function ($q) {
+                $q->whereNull('next_review_at')->orWhere('next_review_at', '<=', Carbon::now());
+            })
+            ->count();
+    }
+
     public function countReviewedByType(string $profileId, string $learnableType): int
     {
         return ProgressModel::query()

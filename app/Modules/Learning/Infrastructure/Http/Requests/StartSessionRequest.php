@@ -13,6 +13,7 @@ final class StartSessionRequest extends AppFormRequest
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'level' => ['nullable', 'string', 'size:2'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'offset' => ['nullable', 'integer', 'min:0', 'max:100000'],
         ];
     }
 }
