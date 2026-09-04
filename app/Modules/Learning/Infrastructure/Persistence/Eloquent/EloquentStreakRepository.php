@@ -48,6 +48,23 @@ final class EloquentStreakRepository implements StreakRepositoryInterface
         return $this->toDomain($model);
     }
 
+    public function recentActiveDays(string $userId, ?string $profileId, int $limit): array
+    {
+        $query = StreakModel::query()
+            ->where('user_id', $userId)
+            ->where('words_reviewed', '>', 0)
+            ->orderBy('date', 'desc')
+            ->limit($limit);
+
+        if ($profileId === null) {
+            $query->whereNull('profile_id');
+        } else {
+            $query->where('profile_id', $profileId);
+        }
+
+        return $query->get()->map(fn (StreakModel $m) => $this->toDomain($m))->all();
+    }
+
     private function toDomain(StreakModel $m): Streak
     {
         return new Streak(

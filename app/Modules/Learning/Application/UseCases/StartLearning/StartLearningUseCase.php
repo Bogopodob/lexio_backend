@@ -21,6 +21,20 @@ final readonly class StartLearningUseCase
             return new ProfileWithStat($existing, $this->profiles->getStat($existing->id));
         }
 
+        foreach ($this->profiles->listByUser($command->userId) as $other) {
+            if ($other->isActive) {
+                $this->profiles->save(new LanguageProfile(
+                    id: $other->id,
+                    userId: $other->userId,
+                    targetLanguageId: $other->targetLanguageId,
+                    nativeLanguageId: $other->nativeLanguageId,
+                    level: $other->level,
+                    dailyGoal: $other->dailyGoal,
+                    isActive: false,
+                ));
+            }
+        }
+
         $profile = $this->profiles->save(new LanguageProfile(
             id: '',
             userId: $command->userId,

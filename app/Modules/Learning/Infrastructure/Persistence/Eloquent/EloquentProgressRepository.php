@@ -56,6 +56,30 @@ final class EloquentProgressRepository implements ProgressRepositoryInterface
             ->all();
     }
 
+    public function countReviewed(string $profileId): int
+    {
+        return ProgressModel::query()->where('profile_id', $profileId)->count();
+    }
+
+    public function countReviewedByType(string $profileId, string $learnableType): int
+    {
+        return ProgressModel::query()
+            ->where('profile_id', $profileId)
+            ->where('learnable_type', $learnableType)
+            ->count();
+    }
+
+    public function accuracyStats(string $profileId): array
+    {
+        $total = ProgressModel::query()->where('profile_id', $profileId)->count();
+        $correct = ProgressModel::query()
+            ->where('profile_id', $profileId)
+            ->where('quality_last', '>=', 3)
+            ->count();
+
+        return ['total' => $total, 'correct' => $correct];
+    }
+
     private function toDomain(ProgressModel $m): ReviewProgress
     {
         return new ReviewProgress(

@@ -14,4 +14,13 @@ interface ProgressRepositoryInterface
      * @return list<ReviewProgress>
      */
     public function dueReviews(string $profileId, int $limit): array;
+
+    public function countReviewed(string $profileId): int;
+
+    public function countReviewedByType(string $profileId, string $learnableType): int;
+
+    /**
+     * @return array{total: int, correct: int} correct = quality_last >= 3
+     */
+    public function accuracyStats(string $profileId): array;
 }

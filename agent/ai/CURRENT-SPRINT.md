@@ -43,6 +43,12 @@
 - **Статус**: done
 - **Что сделано**: AGENTS.md (пути qwicki, команды q_php), TECHSTACK.md (реальные зависимости + фронт), LINKS.md, ARCHITECTURE.md (модули Auth/User/Catalog/Learning/Library, конвенция Take), DB_SCHEMA.md (вся схема qwicki), CURRENT-SPRINT.md, CHECK_SECURITY.md + scope SECURITY_PLAYBOOK.md (PII вместо PHI), IMPLEMENTED_CONCEPT.md и LINKEDIN_ARTICLE.md переписаны под изучение языков
 
+### [FEAT-001] Язык = профиль, цели, достижения, статистика по профилям
+- **Статус**: done
+- **Backend**: `user_goals` CRUD (лимит 3, `.../profiles/{id}/goals`); переключение активного профиля (создание и `is_active:true` гасят остальные); `SubmitReview` считает streak/best из `user_streaks` и дёргает движок достижений (`newly_unlocked` в ответе); `achievements` + `user_achievements` (правила: streak_days, words_learned, xp_total, reviews_total, reviews_of_type, goals_completed, accuracy), сид 9 штук, `GET .../achievements`, `POST .../achievements/evaluate`; `GetStats` считает точность живьём из `user_progresses`
+- **Frontend**: выбор языка в профиле создаёт/активирует языковой профиль; цели грузятся/создаются/правятся/удаляются по активному профилю (гости — моки); достижения — с API с маппингом иконок по коду; Stats — табы профилей + реальные цифры (слова, серия, рекорд, XP, точность, due); графики пока демо (нет таблицы истории)
+- **Проверено**: live-цикл register → profile → goal → review → unlock `first_lesson`; тесты 44/44; pint 320 PASS; фронт build чист
+
 ## Закрыто (архивная сводка, детали — в git-истории)
 
 - **Phase 0 — гигиена**: починены падающие миграции (entries/phrases/categories/learning/auth-down), порядок `users` раньше зависимых, провайдеры Catalog/Learning/Library, сиды (5 языков, 80 категорий), smoke-тест схемы.

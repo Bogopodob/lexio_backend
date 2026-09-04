@@ -2,6 +2,8 @@
 
 namespace App\Modules\Learning\Application\UseCases\SubmitReview;
 
+use App\Modules\Learning\Application\UseCases\EvaluateAchievements\EvaluateAchievementsCommand;
+use App\Modules\Learning\Application\UseCases\EvaluateAchievements\EvaluateAchievementsUseCase;
 use App\Modules\Learning\Domain\Entities\LanguageStat;
 use App\Modules\Learning\Domain\Entities\ReviewProgress;
 use App\Modules\Learning\Domain\Entities\ReviewResult;
@@ -17,6 +19,7 @@ final readonly class SubmitReviewUseCase
         private LanguageProfileRepositoryInterface $profiles,
         private ProgressRepositoryInterface $progress,
         private StreakRepositoryInterface $streaks,
+        private EvaluateAchievementsUseCase $evaluateAchievements,
     ) {}
 
     public function handle(SubmitReviewCommand $command): ?ReviewResult
@@ -91,6 +94,52 @@ final readonly class SubmitReviewUseCase
             wordsNew: ($day ? $day->wordsNew : 0) + ($isNewWord && $quality >= 3 ? 1 : 0),
         ));
 
-        return new ReviewResult($saved, $isNewWord, $xpGained);
+        $this->refreshStreakCounters($command->userId, $command->profileId, $now);
+
+        $unlocked = $this->evaluateAchievements->handle(
+            new EvaluateAchievementsCommand($command->profileId, $command->userId)
+        ) ?? [];
+
+        return new ReviewResult(
+            $saved,
+            $isNewWord,
+            $xpGained,
+            array_map(fn ($a) => $a->code, $unlocked),
+        );
+    }
+
+    private function refreshStreakCounters(string $userId, string $profileId, Carbon $now): void
+    {
+        $days = $this->streaks->recentActiveDays($userId, $profileId, 400);
+        $streak = 0;
+        $cursor = $now->copy()->startOfDay();
+
+        foreach ($days as $day) {
+            $dayDate = Carbon::parse($day->date)->startOfDay();
+
+            if ($dayDate->equalTo($cursor)) {
+                $streak++;
+                $cursor->subDay();
+            } elseif ($dayDate->lessThan($cursor)) {
+                break;
+            }
+        }
+
+        $stat = $this->profiles->getStat($profileId);
+
+        if (! $stat) {
+            return;
+        }
+
+        $this->profiles->saveStat(new LanguageStat(
+            id: $stat->id,
+            profileId: $stat->profileId,
+            wordsLearned: $stat->wordsLearned,
+            streakDays: $streak,
+            bestStreak: max($stat->bestStreak, $streak),
+            xp: $stat->xp,
+            accuracy: $stat->accuracy,
+            lastActivityAt: $stat->lastActivityAt,
+        ));
     }
 }

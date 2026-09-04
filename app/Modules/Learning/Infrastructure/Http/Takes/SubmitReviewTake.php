@@ -35,6 +35,7 @@ final readonly class SubmitReviewTake
             'progress' => ReviewProgressResource::make($result->progress)->resolve(request()),
             'is_new_word' => $result->isNewWord,
             'xp_gained' => $result->xpGained,
+            'newly_unlocked' => $result->newlyUnlocked,
         ];
 
         return LearningResponseResource::make($data)->response();
