@@ -60,6 +60,7 @@ final readonly class StartSessionUseCase
                 xpEarned: $active->xpEarned,
                 startedAt: $active->startedAt,
                 finishedAt: $active->finishedAt,
+                categoryId: $active->categoryId,
             ));
         }
 
@@ -69,6 +70,7 @@ final readonly class StartSessionUseCase
             $source,
             $profile->targetLanguageId,
             $profile->nativeLanguageId,
+            $command->categoryId,
         );
 
         $this->sessions->appendItems($session->id, $deck);

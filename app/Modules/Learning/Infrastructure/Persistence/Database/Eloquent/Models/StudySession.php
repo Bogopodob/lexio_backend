@@ -40,6 +40,7 @@ final class StudySession extends Model
         'user_id',
         'profile_id',
         'source',
+        'category_id',
         'status',
         'total',
         'answered',

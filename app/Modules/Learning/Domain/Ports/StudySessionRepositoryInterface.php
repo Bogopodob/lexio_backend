@@ -14,6 +14,7 @@ interface StudySessionRepositoryInterface
         string $source,
         string $targetLanguageId,
         string $nativeLanguageId,
+        ?string $categoryId = null,
     ): StudySession;
 
     /**

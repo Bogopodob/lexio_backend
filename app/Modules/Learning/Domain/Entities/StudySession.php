@@ -19,6 +19,7 @@ final readonly class StudySession
         public int $xpEarned,
         public ?string $startedAt,
         public ?string $finishedAt,
+        public ?string $categoryId = null,
         public array $items = [],
     ) {}
 }

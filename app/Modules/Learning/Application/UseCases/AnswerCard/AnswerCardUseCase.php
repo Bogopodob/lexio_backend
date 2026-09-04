@@ -66,6 +66,7 @@ final readonly class AnswerCardUseCase
             xpEarned: $session->xpEarned + $review->xpGained,
             startedAt: $session->startedAt,
             finishedAt: $session->finishedAt,
+            categoryId: $session->categoryId,
         ));
 
         $following = $this->sessions->nextPendingItem($command->sessionId);
@@ -84,6 +85,7 @@ final readonly class AnswerCardUseCase
                 xpEarned: $updated->xpEarned,
                 startedAt: $updated->startedAt,
                 finishedAt: Carbon::now()->toDateTimeString(),
+                categoryId: $updated->categoryId,
             ));
         }
 

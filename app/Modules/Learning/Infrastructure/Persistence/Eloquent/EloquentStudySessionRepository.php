@@ -23,6 +23,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         string $source,
         string $targetLanguageId,
         string $nativeLanguageId,
+        ?string $categoryId = null,
     ): StudySession {
         $now = Carbon::now()->toDateTimeString();
 
@@ -31,6 +32,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             'user_id' => $userId,
             'profile_id' => $profileId,
             'source' => $source,
+            'category_id' => $categoryId,
             'status' => 'active',
             'total' => 0,
             'answered' => 0,
@@ -328,6 +330,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             xpEarned: (int) $m->xp_earned,
             startedAt: $m->started_at ? (string) $m->started_at : null,
             finishedAt: $m->finished_at ? (string) $m->finished_at : null,
+            categoryId: $m->category_id ? (string) $m->category_id : null,
             items: $items,
         );
     }

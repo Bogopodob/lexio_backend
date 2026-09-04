@@ -32,6 +32,7 @@ final readonly class FinishSessionUseCase
             xpEarned: $session->xpEarned,
             startedAt: $session->startedAt,
             finishedAt: Carbon::now()->toDateTimeString(),
+            categoryId: $session->categoryId,
         ));
     }
 }

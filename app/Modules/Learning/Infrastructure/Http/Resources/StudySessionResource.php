@@ -18,6 +18,7 @@ final class StudySessionResource extends JsonResource
             'id' => $this->session->id,
             'profile_id' => $this->session->profileId,
             'source' => $this->session->source,
+            'category_id' => $this->session->categoryId,
             'status' => $this->session->status,
             'total' => $this->session->total,
             'answered' => $this->session->answered,
