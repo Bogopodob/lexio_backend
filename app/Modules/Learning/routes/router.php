@@ -17,4 +17,9 @@ Route::prefix('learning')->middleware(['jwt.auth', 'user.owner'])->group(functio
     Route::get('/users/{userId}/profiles/{profileId}/achievements', [LearningController::class, 'achievements']);
     Route::post('/users/{userId}/profiles/{profileId}/achievements/evaluate', [LearningController::class, 'evaluateAchievements']);
     Route::get('/users/{userId}/profiles/{profileId}/categories', [LearningController::class, 'categories']);
+    Route::post('/users/{userId}/profiles/{profileId}/sessions', [LearningController::class, 'startSession']);
+    Route::get('/users/{userId}/profiles/{profileId}/sessions', [LearningController::class, 'sessions']);
+    Route::get('/users/{userId}/sessions/{sessionId}/next', [LearningController::class, 'nextCard']);
+    Route::post('/users/{userId}/sessions/{sessionId}/answer', [LearningController::class, 'answerCard']);
+    Route::post('/users/{userId}/sessions/{sessionId}/finish', [LearningController::class, 'finishSession']);
 });

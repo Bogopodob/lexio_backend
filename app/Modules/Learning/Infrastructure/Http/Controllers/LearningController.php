@@ -2,20 +2,27 @@
 
 namespace App\Modules\Learning\Infrastructure\Http\Controllers;
 
+use App\Modules\Learning\Infrastructure\Http\Requests\AnswerCardRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\SaveGoalRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\StartLearningRequest;
+use App\Modules\Learning\Infrastructure\Http\Requests\StartSessionRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\SubmitReviewRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\UpdateProfileRequest;
+use App\Modules\Learning\Infrastructure\Http\Takes\AnswerCardTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\DeleteGoalTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\DueReviewsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\EvaluateAchievementsTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\FinishSessionTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\GetNextCardTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetStatsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListAchievementsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListCategoriesWithProgressTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListGoalsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListProfilesTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\ListSessionsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\SaveGoalTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\StartLearningTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\StartSessionTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\SubmitReviewTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\UpdateProfileTake;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +44,11 @@ final class LearningController extends Controller
         private readonly ListAchievementsTake $listAchievementsTake,
         private readonly EvaluateAchievementsTake $evaluateAchievementsTake,
         private readonly ListCategoriesWithProgressTake $listCategoriesWithProgressTake,
+        private readonly StartSessionTake $startSessionTake,
+        private readonly GetNextCardTake $getNextCardTake,
+        private readonly AnswerCardTake $answerCardTake,
+        private readonly ListSessionsTake $listSessionsTake,
+        private readonly FinishSessionTake $finishSessionTake,
     ) {}
 
     public function start(string $userId, StartLearningRequest $request): JsonResponse
@@ -102,5 +114,30 @@ final class LearningController extends Controller
     public function categories(string $userId, string $profileId, Request $request): JsonResponse
     {
         return $this->listCategoriesWithProgressTake->handle($userId, $profileId, $request);
+    }
+
+    public function startSession(string $userId, string $profileId, StartSessionRequest $request): JsonResponse
+    {
+        return $this->startSessionTake->handle($userId, $profileId, $request);
+    }
+
+    public function sessions(string $userId, string $profileId, Request $request): JsonResponse
+    {
+        return $this->listSessionsTake->handle($userId, $profileId, $request);
+    }
+
+    public function nextCard(string $userId, string $sessionId): JsonResponse
+    {
+        return $this->getNextCardTake->handle($userId, $sessionId);
+    }
+
+    public function answerCard(string $userId, string $sessionId, AnswerCardRequest $request): JsonResponse
+    {
+        return $this->answerCardTake->handle($userId, $sessionId, $request);
+    }
+
+    public function finishSession(string $userId, string $sessionId): JsonResponse
+    {
+        return $this->finishSessionTake->handle($userId, $sessionId);
     }
 }
