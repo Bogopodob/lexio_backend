@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Modules\User\Domain\Entities;
+
+final readonly class Friendship
+{
+    public function __construct(
+        public string $id,
+        public string $requesterId,
+        public string $addresseeId,
+        public string $status,
+    ) {}
+}
