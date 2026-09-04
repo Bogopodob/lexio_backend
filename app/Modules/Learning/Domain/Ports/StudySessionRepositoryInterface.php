@@ -29,7 +29,16 @@ interface StudySessionRepositoryInterface
      */
     public function listSessions(string $profileId, int $limit): array;
 
-    public function findActiveSession(string $profileId): ?StudySession;
+    /**
+     * Newest active session within one category context (null = no topic).
+     * Each topic keeps its own resumable session.
+     */
+    public function findActiveSession(string $profileId, ?string $categoryId = null): ?StudySession;
+
+    /**
+     * Abandon all active sessions of the profile within one category context.
+     */
+    public function abandonActive(string $profileId, ?string $categoryId): int;
 
     public function saveSession(StudySession $session): StudySession;
 

@@ -28,6 +28,7 @@ class StudySessionTest extends TestCase
         parent::setUp();
 
         $this->seed(LanguageSeeder::class);
+        $this->seed(\App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\CategorySeeder::class);
         $this->seed(DemoContentSeeder::class);
 
         $registered = $this->postJson('/api/register', [
@@ -217,6 +218,86 @@ class StudySessionTest extends TestCase
             "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
             ['source' => 'new', 'limit' => 5, 'offset' => 100000]
         )->assertStatus(422);
+    }
+
+    public function test_each_topic_keeps_its_own_resume(): void
+    {
+        $catA = \Illuminate\Support\Facades\DB::table('categories')->where('slug', 'verbs')->value('id');
+        $catB = \Illuminate\Support\Facades\DB::table('categories')->where('slug', 'nouns')->value('id');
+
+        $this->assertNotNull($catA);
+        $this->assertNotNull($catB);
+
+        $en = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'en')->value('id');
+
+        foreach ([[$catA, 'run-a'], [$catA, 'jump-a'], [$catB, 'run-b'], [$catB, 'jump-b']] as [$cat, $word]) {
+            $entry = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry::query()->create(['level' => 'A1']);
+            $meaning = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryMeaning::query()->create([
+                'entry_id' => $entry->id,
+                'note' => $word,
+            ]);
+            \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation::query()->create([
+                'entry_id' => $entry->id,
+                'meaning_id' => $meaning->id,
+                'language_id' => $en,
+                'text' => $word,
+            ]);
+            \Illuminate\Support\Facades\DB::table('entry_category')->insert([
+                'entry_id' => $entry->id,
+                'category_id' => $cat,
+            ]);
+        }
+
+        // Start a lesson on topic A and answer one card.
+        $sessionA = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catA]
+        )->json('data');
+
+        $cardA = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionA['id']}/next"
+        )->json('data.card');
+
+        $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionA['id']}/answer",
+            ['learnable_id' => $cardA['learnable_id'], 'quality' => 4]
+        )->assertOk();
+
+        // Start a lesson on topic B: topic A's session must survive.
+        $sessionB = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catB]
+        )->json('data');
+
+        $this->assertSame((string) $catB, $sessionB['category_id']);
+
+        $list = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions"
+        )->json('data');
+
+        $actives = array_values(array_filter($list, fn ($s) => $s['status'] === 'active'));
+        $this->assertCount(2, $actives);
+
+        // A fresh start inside topic A abandons only topic A's session.
+        $sessionA2 = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catA]
+        )->json('data');
+
+        $this->assertNotSame($sessionA['id'], $sessionA2['id']);
+
+        $list = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions"
+        )->json('data');
+
+        $byId = [];
+        foreach ($list as $s) {
+            $byId[$s['id']] = $s['status'];
+        }
+
+        $this->assertSame('abandoned', $byId[$sessionA['id']]);
+        $this->assertSame('active', $byId[$sessionB['id']]);
+        $this->assertSame('active', $byId[$sessionA2['id']]);
     }
 
     public function test_guest_cannot_study(): void

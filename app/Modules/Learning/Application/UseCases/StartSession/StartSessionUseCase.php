@@ -45,24 +45,9 @@ final readonly class StartSessionUseCase
             return null;
         }
 
-        $active = $this->sessions->findActiveSession($command->profileId);
-
-        if ($active) {
-            $this->sessions->saveSession(new StudySession(
-                id: $active->id,
-                userId: $active->userId,
-                profileId: $active->profileId,
-                source: $active->source,
-                status: 'abandoned',
-                total: $active->total,
-                answered: $active->answered,
-                correct: $active->correct,
-                xpEarned: $active->xpEarned,
-                startedAt: $active->startedAt,
-                finishedAt: $active->finishedAt,
-                categoryId: $active->categoryId,
-            ));
-        }
+        // A fresh start closes only the unfinished session of the same
+        // topic — other topics keep their own resumable sessions.
+        $this->sessions->abandonActive($command->profileId, $command->categoryId);
 
         $session = $this->sessions->createSession(
             $command->userId,

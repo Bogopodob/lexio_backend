@@ -111,15 +111,36 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->all();
     }
 
-    public function findActiveSession(string $profileId): ?StudySession
+    public function findActiveSession(string $profileId, ?string $categoryId = null): ?StudySession
     {
-        $model = SessionModel::query()
+        $query = SessionModel::query()
             ->where('profile_id', $profileId)
-            ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->first();
+            ->where('status', 'active');
+
+        if ($categoryId === null) {
+            $query->whereNull('category_id');
+        } else {
+            $query->where('category_id', $categoryId);
+        }
+
+        $model = $query->orderBy('created_at', 'desc')->first();
 
         return $model ? $this->findSession((string) $model->id) : null;
+    }
+
+    public function abandonActive(string $profileId, ?string $categoryId): int
+    {
+        $query = SessionModel::query()
+            ->where('profile_id', $profileId)
+            ->where('status', 'active');
+
+        if ($categoryId === null) {
+            $query->whereNull('category_id');
+        } else {
+            $query->where('category_id', $categoryId);
+        }
+
+        return $query->update(['status' => 'abandoned', 'updated_at' => Carbon::now()]);
     }
 
     public function saveSession(StudySession $session): StudySession
