@@ -14,7 +14,7 @@ final class UpsertUserProfileRequest extends AppFormRequest
             'surname' => ['nullable', 'string', 'max:255'],
             'avatar' => ['nullable', 'string', 'max:2048'],
             'city' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date_format:Y-m-d'],
+            'birth_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:1900-01-01', 'before_or_equal:today'],
             'tags' => ['nullable', 'array', 'max:6'],
             'tags.*' => ['string', 'max:20'],
         ];

@@ -48,6 +48,20 @@ class UserProfileExtendedTest extends TestCase
         $shown->assertOk()->assertJsonPath('data.city', 'Москва');
     }
 
+    public function test_profile_rejects_future_birth_date(): void
+    {
+        $user = $this->authUser('future@example.com');
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['birth_date' => '2994-05-15'])
+            ->assertUnprocessable();
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['birth_date' => '1994-05-15'])
+            ->assertOk()
+            ->assertJsonPath('data.birth_date', '1994-05-15');
+    }
+
     public function test_profile_rejects_too_many_tags(): void
     {
         $user = $this->authUser('alex2@example.com');
