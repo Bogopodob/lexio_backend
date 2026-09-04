@@ -25,6 +25,22 @@ class AuthProtectionTest extends TestCase
         ];
     }
 
+    public function test_register_creates_profile_row_with_name(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'email' => 'withprofile@example.com',
+            'password' => 'secret123',
+            'name' => 'Петя',
+        ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('user_profiles', [
+            'user_id' => $response->json('data.user.id'),
+            'name' => 'Петя',
+        ]);
+    }
+
     public function test_guest_cannot_read_profile(): void
     {
         $user = $this->register('a@example.com');

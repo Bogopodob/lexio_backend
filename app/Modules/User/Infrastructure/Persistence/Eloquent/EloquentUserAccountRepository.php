@@ -5,6 +5,8 @@ namespace App\Modules\User\Infrastructure\Persistence\Eloquent;
 use App\Modules\User\Domain\Entities\UserAccount;
 use App\Modules\User\Domain\Ports\UserAccountRepositoryInterface;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\User as UserModel;
+use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\UserProfile as UserProfileModel;
+use Illuminate\Support\Facades\DB;
 
 final class EloquentUserAccountRepository implements UserAccountRepositoryInterface
 {
@@ -24,14 +26,23 @@ final class EloquentUserAccountRepository implements UserAccountRepositoryInterf
 
     public function create(string $id, string $name, string $email, string $passwordHash): UserAccount
     {
-        $user = UserModel::query()->create([
-            'id' => $id,
-            'name' => trim($name) !== '' ? trim($name) : 'User',
-            'email' => mb_strtolower(trim($email)),
-            'password' => $passwordHash,
-        ]);
+        return DB::transaction(function () use ($id, $name, $email, $passwordHash) {
+            $displayName = trim($name) !== '' ? trim($name) : 'User';
 
-        return $this->toDomain($user);
+            $user = UserModel::query()->create([
+                'id' => $id,
+                'name' => $displayName,
+                'email' => mb_strtolower(trim($email)),
+                'password' => $passwordHash,
+            ]);
+
+            UserProfileModel::query()->firstOrCreate(
+                ['user_id' => $id],
+                ['name' => $displayName],
+            );
+
+            return $this->toDomain($user);
+        });
     }
 
     private function toDomain(UserModel $user): UserAccount
