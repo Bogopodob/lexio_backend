@@ -17,6 +17,9 @@ final class UpsertUserProfileRequest extends AppFormRequest
             'birth_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:1900-01-01', 'before_or_equal:today'],
             'tags' => ['nullable', 'array', 'max:6'],
             'tags.*' => ['string', 'max:20'],
+            'reminder_schedule' => ['nullable', 'array', 'max:7'],
+            'reminder_schedule.*' => ['array', 'max:3'],
+            'reminder_schedule.*.*' => ['string', 'date_format:H:i'],
         ];
     }
 

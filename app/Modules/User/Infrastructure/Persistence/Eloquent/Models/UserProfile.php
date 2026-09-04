@@ -26,6 +26,7 @@ final class UserProfile extends Model
         'city',
         'birth_date',
         'tags',
+        'reminder_schedule',
         'created_at',
         'updated_at',
     ];
@@ -35,6 +36,7 @@ final class UserProfile extends Model
         return [
             'birth_date' => 'date',
             'tags' => 'array',
+            'reminder_schedule' => 'array',
         ];
     }
 }

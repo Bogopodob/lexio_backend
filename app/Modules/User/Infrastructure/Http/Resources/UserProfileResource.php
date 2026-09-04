@@ -23,6 +23,7 @@ final class UserProfileResource extends JsonResource
             'city' => $this->profile->city,
             'birth_date' => $this->profile->birthDate,
             'tags' => $this->profile->tags ?? [],
+            'reminder_schedule' => $this->profile->reminderSchedule,
         ];
     }
 }

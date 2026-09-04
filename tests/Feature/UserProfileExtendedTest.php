@@ -62,6 +62,37 @@ class UserProfileExtendedTest extends TestCase
             ->assertJsonPath('data.birth_date', '1994-05-15');
     }
 
+    public function test_profile_saves_reminder_schedule(): void
+    {
+        $user = $this->authUser('remind@example.com');
+
+        $response = $this->withToken($user['token'])->putJson("/api/users/{$user['id']}/profile", [
+            'reminder_schedule' => [
+                'mon' => ['21:00', '09:00', '09:00'],
+                'fri' => ['09:00'],
+                'noday' => ['10:00'],
+            ],
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.reminder_schedule', [
+            'mon' => ['09:00', '21:00'],
+            'fri' => ['09:00'],
+        ]);
+    }
+
+    public function test_profile_rejects_bad_reminder_time(): void
+    {
+        $user = $this->authUser('remind2@example.com');
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['reminder_schedule' => ['mon' => ['9am']]])
+            ->assertUnprocessable();
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['reminder_schedule' => ['mon' => ['08:00', '09:00', '10:00', '11:00']]])
+            ->assertUnprocessable();
+    }
+
     public function test_profile_rejects_too_many_tags(): void
     {
         $user = $this->authUser('alex2@example.com');

@@ -27,6 +27,7 @@ final class EloquentUserProfileRepository implements UserProfileRepositoryInterf
                 'city' => $this->nullableTrim($profile->city),
                 'birth_date' => $profile->birthDate,
                 'tags' => $profile->tags === null ? null : array_values($profile->tags),
+                'reminder_schedule' => $profile->reminderSchedule === null ? null : $profile->reminderSchedule,
             ],
         );
 
@@ -44,6 +45,7 @@ final class EloquentUserProfileRepository implements UserProfileRepositoryInterf
             city: $profile->city,
             birthDate: $profile->birth_date ? $profile->birth_date->format('Y-m-d') : null,
             tags: $profile->tags === null ? null : array_values((array) $profile->tags),
+            reminderSchedule: $profile->reminder_schedule === null ? null : (array) $profile->reminder_schedule,
         );
     }
 

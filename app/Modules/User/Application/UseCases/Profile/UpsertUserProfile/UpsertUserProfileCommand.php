@@ -6,6 +6,7 @@ final readonly class UpsertUserProfileCommand
 {
     /**
      * @param  list<string>|null  $tags
+     * @param  array<string, list<string>>|null  $reminderSchedule
      */
     public function __construct(
         public string $userId,
@@ -16,5 +17,6 @@ final readonly class UpsertUserProfileCommand
         public ?string $city = null,
         public ?string $birthDate = null,
         public ?array $tags = null,
+        public ?array $reminderSchedule = null,
     ) {}
 }
