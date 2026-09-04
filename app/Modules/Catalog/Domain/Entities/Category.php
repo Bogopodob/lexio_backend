@@ -14,5 +14,7 @@ final readonly class Category
         public ?string $color,
         public ?string $icon,
         public int $sort,
+        public ?string $name = null,
+        public int $entriesCount = 0,
     ) {}
 }

@@ -17,7 +17,7 @@ interface CatalogRepositoryInterface
     /**
      * @return list<Category>
      */
-    public function listCategories(?string $type = null): array;
+    public function listCategories(?string $type = null, string $locale = 'ru'): array;
 
     /**
      * @return list<EntrySearchHit>

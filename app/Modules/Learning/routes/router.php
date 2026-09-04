@@ -16,4 +16,5 @@ Route::prefix('learning')->middleware(['jwt.auth', 'user.owner'])->group(functio
     Route::delete('/users/{userId}/profiles/{profileId}/goals/{goalId}', [LearningController::class, 'destroyGoal']);
     Route::get('/users/{userId}/profiles/{profileId}/achievements', [LearningController::class, 'achievements']);
     Route::post('/users/{userId}/profiles/{profileId}/achievements/evaluate', [LearningController::class, 'evaluateAchievements']);
+    Route::get('/users/{userId}/profiles/{profileId}/categories', [LearningController::class, 'categories']);
 });

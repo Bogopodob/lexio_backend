@@ -80,6 +80,28 @@ final class EloquentProgressRepository implements ProgressRepositoryInterface
         return ['total' => $total, 'correct' => $correct];
     }
 
+    public function countLearnedByCategory(string $profileId): array
+    {
+        $rows = ProgressModel::query()
+            ->join('entry_category', function ($join) {
+                $join->on('entry_category.entry_id', '=', 'user_progresses.learnable_id')
+                    ->where('user_progresses.learnable_type', '=', 'entry');
+            })
+            ->where('user_progresses.profile_id', $profileId)
+            ->where('user_progresses.repetition', '>', 0)
+            ->selectRaw('entry_category.category_id, COUNT(DISTINCT user_progresses.learnable_id) as total')
+            ->groupBy('entry_category.category_id')
+            ->get();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $result[(string) $row->category_id] = (int) $row->total;
+        }
+
+        return $result;
+    }
+
     private function toDomain(ProgressModel $m): ReviewProgress
     {
         return new ReviewProgress(

@@ -23,6 +23,8 @@ final class CategoryResource extends JsonResource
             'color' => $this->category->color,
             'icon' => $this->category->icon,
             'sort' => $this->category->sort,
+            'name' => $this->category->name,
+            'entries_count' => $this->category->entriesCount,
         ];
     }
 }

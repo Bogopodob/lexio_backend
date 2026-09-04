@@ -23,4 +23,11 @@ interface ProgressRepositoryInterface
      * @return array{total: int, correct: int} correct = quality_last >= 3
      */
     public function accuracyStats(string $profileId): array;
+
+    /**
+     * Learned entries (repetition > 0) grouped by catalog category.
+     *
+     * @return array<string, int> category_id => distinct entries count
+     */
+    public function countLearnedByCategory(string $profileId): array;
 }

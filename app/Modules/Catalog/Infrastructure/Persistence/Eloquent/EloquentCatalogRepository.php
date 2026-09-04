@@ -47,7 +47,7 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
         ))->all();
     }
 
-    public function listCategories(?string $type = null): array
+    public function listCategories(?string $type = null, string $locale = 'ru'): array
     {
         $query = CategoryModel::query()->orderBy('sort');
 
@@ -55,7 +55,31 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             $query->where('type', $type);
         }
 
-        return $query->get()->map(fn (CategoryModel $m) => new Category(
+        $models = $query->get();
+
+        if ($models->isEmpty()) {
+            return [];
+        }
+
+        $ids = $models->pluck('id')->map(fn ($id) => (string) $id)->all();
+
+        $names = DB::table('translations')
+            ->whereIn('entity_type', [
+                CategoryModel::class,
+                'App\\Modules\\Catalog\\Infrastructure\\Persistence\\Eloquent\\Category',
+            ])
+            ->whereIn('entity_id', $ids)
+            ->where('field', 'name')
+            ->where('locale', $locale)
+            ->pluck('value', 'entity_id');
+
+        $counts = DB::table('entry_category')
+            ->selectRaw('category_id, COUNT(*) as total')
+            ->whereIn('category_id', $ids)
+            ->groupBy('category_id')
+            ->pluck('total', 'category_id');
+
+        return $models->map(fn (CategoryModel $m) => new Category(
             id: (string) $m->id,
             parentId: $m->parent_id ? (string) $m->parent_id : null,
             userId: $m->user_id ? (string) $m->user_id : null,
@@ -65,6 +89,8 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             color: $m->color,
             icon: $m->icon,
             sort: (int) $m->sort,
+            name: $names->get((string) $m->id),
+            entriesCount: (int) ($counts->get((string) $m->id) ?? 0),
         ))->all();
     }
 

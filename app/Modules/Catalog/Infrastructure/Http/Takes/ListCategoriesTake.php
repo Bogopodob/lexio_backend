@@ -17,8 +17,13 @@ final readonly class ListCategoriesTake
 
     public function handle(Request $request): JsonResponse
     {
+        $locale = (string) $request->query('locale', 'ru');
+
         $result = $this->useCase->handle(
-            new ListCategoriesCommand(type: $request->query('type'))
+            new ListCategoriesCommand(
+                type: $request->query('type'),
+                locale: in_array($locale, ['ru', 'en'], true) ? $locale : 'ru',
+            )
         );
 
         $data = array_map(fn ($c) => CategoryResource::make($c)->resolve($request), $result);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\CategorySeeder;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
 use App\Modules\Learning\Infrastructure\Persistence\Database\Seeders\AchievementSeeder;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\User;
@@ -122,6 +123,24 @@ class GoalsAchievementsTest extends TestCase
         $active = array_values(array_filter($list, fn ($p) => $p['is_active']));
         $this->assertCount(1, $active);
         $this->assertSame($this->profileId, $active[0]['id']);
+    }
+
+    public function test_categories_have_names_counts_and_learned(): void
+    {
+        $this->seed(CategorySeeder::class);
+
+        $list = $this->getJson('/api/catalog/categories?type=theme')->json('data');
+
+        $this->assertNotEmpty($list);
+        $this->assertArrayHasKey('name', $list[0]);
+        $this->assertArrayHasKey('entries_count', $list[0]);
+        $this->assertNotEmpty($list[0]['name']);
+
+        $withProgress = $this->withToken($this->token)->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/categories?type=grammar"
+        );
+
+        $withProgress->assertOk()->assertJsonStructure(['data' => [['slug', 'name', 'entries_count', 'learned_count']]]);
     }
 
     public function test_achievements_list_and_first_lesson_unlock(): void
