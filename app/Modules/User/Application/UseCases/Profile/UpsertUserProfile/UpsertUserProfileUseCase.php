@@ -55,6 +55,13 @@ final readonly class UpsertUserProfileUseCase
         return $result;
     }
 
+    private static function normalizeGender(string $gender): ?string
+    {
+        $value = mb_strtolower(trim($gender));
+
+        return in_array($value, ['male', 'female'], true) ? $value : null;
+    }
+
     public function handle(UpsertUserProfileCommand $command): UserProfile
     {
         return $this->userProfileRepository->save(
@@ -70,6 +77,7 @@ final readonly class UpsertUserProfileUseCase
                 reminderSchedule: $command->reminderSchedule === null
                     ? null
                     : self::normalizeSchedule($command->reminderSchedule),
+                gender: $command->gender === null ? null : self::normalizeGender($command->gender),
             )
         );
     }

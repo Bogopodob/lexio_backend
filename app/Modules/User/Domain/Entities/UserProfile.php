@@ -18,5 +18,6 @@ final readonly class UserProfile
         public ?string $birthDate = null,
         public ?array $tags = null,
         public ?array $reminderSchedule = null,
+        public ?string $gender = null,
     ) {}
 }

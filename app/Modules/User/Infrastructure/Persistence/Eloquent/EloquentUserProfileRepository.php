@@ -28,6 +28,7 @@ final class EloquentUserProfileRepository implements UserProfileRepositoryInterf
                 'birth_date' => $profile->birthDate,
                 'tags' => $profile->tags === null ? null : array_values($profile->tags),
                 'reminder_schedule' => $profile->reminderSchedule === null ? null : $profile->reminderSchedule,
+                'gender' => $profile->gender,
             ],
         );
 
@@ -46,6 +47,7 @@ final class EloquentUserProfileRepository implements UserProfileRepositoryInterf
             birthDate: $profile->birth_date ? $profile->birth_date->format('Y-m-d') : null,
             tags: $profile->tags === null ? null : array_values((array) $profile->tags),
             reminderSchedule: $profile->reminder_schedule === null ? null : (array) $profile->reminder_schedule,
+            gender: $profile->gender,
         );
     }
 

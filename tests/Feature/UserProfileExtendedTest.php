@@ -93,6 +93,20 @@ class UserProfileExtendedTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_profile_saves_gender(): void
+    {
+        $user = $this->authUser('gender@example.com');
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['gender' => 'female'])
+            ->assertOk()
+            ->assertJsonPath('data.gender', 'female');
+
+        $this->withToken($user['token'])
+            ->putJson("/api/users/{$user['id']}/profile", ['gender' => 'unknown'])
+            ->assertUnprocessable();
+    }
+
     public function test_profile_rejects_too_many_tags(): void
     {
         $user = $this->authUser('alex2@example.com');

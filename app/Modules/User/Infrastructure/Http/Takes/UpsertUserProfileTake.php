@@ -27,6 +27,7 @@ final readonly class UpsertUserProfileTake
                 birthDate: $request->validated('birth_date'),
                 tags: $request->validated('tags'),
                 reminderSchedule: $request->validated('reminder_schedule'),
+                gender: $request->validated('gender'),
             )
         );
 

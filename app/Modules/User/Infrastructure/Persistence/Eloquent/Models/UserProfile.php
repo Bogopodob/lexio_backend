@@ -27,6 +27,7 @@ final class UserProfile extends Model
         'birth_date',
         'tags',
         'reminder_schedule',
+        'gender',
         'created_at',
         'updated_at',
     ];

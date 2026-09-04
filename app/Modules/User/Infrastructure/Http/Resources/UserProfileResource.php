@@ -24,6 +24,7 @@ final class UserProfileResource extends JsonResource
             'birth_date' => $this->profile->birthDate,
             'tags' => $this->profile->tags ?? [],
             'reminder_schedule' => $this->profile->reminderSchedule,
+            'gender' => $this->profile->gender,
         ];
     }
 }
