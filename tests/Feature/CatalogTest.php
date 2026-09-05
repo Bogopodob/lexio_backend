@@ -106,22 +106,24 @@ class CatalogTest extends TestCase
     {
         $missing = '00000000-0000-0000-0000-000000000000';
 
-        $this->getJson("/api/catalog/entries/{$missing}")
-            ->assertNotFound()
-            ->assertJsonPath('message', 'Entry not found');
-
-        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'ru'])
+        // Backend default is Russian (the test client injects
+        // en-us when the header is absent, so send it empty).
+        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => ''])
             ->assertNotFound()
             ->assertJsonPath('message', 'Запись не найдена');
+
+        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'en'])
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Entry not found');
 
         $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'ru-RU,ru;q=0.9,en;q=0.8'])
             ->assertNotFound()
             ->assertJsonPath('message', 'Запись не найдена');
 
-        // Unknown language falls back to English.
+        // Unknown language falls back to the Russian default.
         $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'de'])
             ->assertNotFound()
-            ->assertJsonPath('message', 'Entry not found');
+            ->assertJsonPath('message', 'Запись не найдена');
     }
 
     public function test_lists_languages(): void

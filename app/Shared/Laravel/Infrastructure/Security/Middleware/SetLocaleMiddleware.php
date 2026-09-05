@@ -17,9 +17,9 @@ final readonly class SetLocaleMiddleware
     public function handle(Request $request, Closure $next)
     {
         // Parsed manually: Symfony's getPreferredLanguage falls back to
-        // the first supported language when nothing matches, but unknown
-        // languages must stay on the app default (English).
-        $locale = 'en';
+        // the first supported language when nothing matches, but missing
+        // or unknown languages must stay on the default (Russian).
+        $locale = 'ru';
         $header = (string) $request->headers->get('Accept-Language', '');
 
         if ($header !== '' && preg_match_all('/([a-zA-Z]{2,8})(?:-[a-zA-Z]{2,8})?(?:\s*;\s*q\s*=\s*([0-9.]+))?/', $header, $matches)) {
