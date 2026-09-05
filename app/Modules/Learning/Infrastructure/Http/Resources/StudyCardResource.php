@@ -21,6 +21,8 @@ final class StudyCardResource extends JsonResource
             'front_transcription' => $this->card->frontTranscription,
             'back_texts' => $this->card->backTexts,
             'hint' => $this->card->hint,
+            'target_texts' => $this->card->targetTexts,
+            'native_texts' => $this->card->nativeTexts,
         ];
     }
 }

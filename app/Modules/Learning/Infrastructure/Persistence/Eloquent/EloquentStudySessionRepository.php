@@ -305,18 +305,26 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         $front = null;
         $back = [];
         $hint = null;
+        $targetTexts = [];
+        $nativeTexts = [];
 
         foreach ($rows as $row) {
             $lang = (string) $row->language_id;
+            $text = (string) $row->text;
 
-            if ($lang === $target && $front === null) {
-                $front = ['text' => $row->text, 'tr' => $row->transcription ?? null];
+            if ($lang === $target) {
+                $targetTexts[] = $text;
 
-                if ($withPos && isset($row->part_of_speech) && $row->part_of_speech) {
-                    $hint = (string) $row->part_of_speech;
+                if ($front === null) {
+                    $front = ['text' => $text, 'tr' => $row->transcription ?? null];
+
+                    if ($withPos && isset($row->part_of_speech) && $row->part_of_speech) {
+                        $hint = (string) $row->part_of_speech;
+                    }
                 }
-            } elseif ($lang !== $target) {
-                $back[] = (string) $row->text;
+            } else {
+                $back[] = $text;
+                $nativeTexts[] = $text;
             }
         }
 
@@ -331,6 +339,8 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             frontTranscription: $front['tr'],
             backTexts: array_values(array_unique($back)),
             hint: $hint,
+            targetTexts: array_values(array_unique($targetTexts)),
+            nativeTexts: array_values(array_unique($nativeTexts)),
         );
     }
 

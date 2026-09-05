@@ -6,6 +6,8 @@ final readonly class StudyCard
 {
     /**
      * @param  list<string>  $backTexts
+     * @param  list<string>  $targetTexts
+     * @param  list<string>  $nativeTexts
      */
     public function __construct(
         public string $learnableType,
@@ -14,5 +16,7 @@ final readonly class StudyCard
         public ?string $frontTranscription,
         public array $backTexts,
         public ?string $hint,
+        public array $targetTexts = [],
+        public array $nativeTexts = [],
     ) {}
 }
