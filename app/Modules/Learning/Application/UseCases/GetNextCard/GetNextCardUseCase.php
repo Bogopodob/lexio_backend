@@ -31,7 +31,12 @@ final readonly class GetNextCardUseCase
             return null;
         }
 
-        $card = $this->sessions->cardFor($session->profileId, $next->learnableType, $next->learnableId);
+        $card = $this->sessions->cardFor(
+            $session->profileId,
+            $next->learnableType,
+            $next->learnableId,
+            $session->categoryId,
+        );
 
         if (! $card) {
             return null;

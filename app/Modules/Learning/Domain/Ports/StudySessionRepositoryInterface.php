@@ -48,7 +48,16 @@ interface StudySessionRepositoryInterface
 
     public function countByStatus(string $sessionId, string $status): int;
 
-    public function cardFor(string $profileId, string $learnableType, string $learnableId): ?StudyCard;
+    /**
+     * When $categoryId points to a verbs-only category, the card keeps
+     * verb translations only (other parts of speech are lesson noise).
+     */
+    public function cardFor(
+        string $profileId,
+        string $learnableType,
+        string $learnableId,
+        ?string $categoryId = null,
+    ): ?StudyCard;
 
     /**
      * Entries the profile has never reviewed, optionally filtered.

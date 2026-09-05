@@ -192,8 +192,12 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->count();
     }
 
-    public function cardFor(string $profileId, string $learnableType, string $learnableId): ?StudyCard
-    {
+    public function cardFor(
+        string $profileId,
+        string $learnableType,
+        string $learnableId,
+        ?string $categoryId = null,
+    ): ?StudyCard {
         $profile = ProfileModel::query()->find($profileId);
 
         if (! $profile) {
@@ -202,9 +206,10 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
 
         $target = (string) $profile->target_language_id;
         $native = (string) $profile->native_language_id;
+        $verbsOnly = $this->isVerbsCategory($categoryId);
 
-        $card = match ($learnableType) {
-            'entry' => $this->entryCard($learnableId, $target, $native),
+        return match ($learnableType) {
+            'entry' => $this->entryCard($learnableId, $target, $native, $verbsOnly),
             'phrase' => $this->phraseCard($learnableId, $target, $native),
             'user_entry' => $this->userEntryCard($learnableId, $target, $native),
             'user_phrase' => $this->userPhraseCard($learnableId, $target, $native),
@@ -308,13 +313,35 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->count();
     }
 
-    private function entryCard(string $entryId, string $target, string $native): ?StudyCard
+    private function isVerbsCategory(?string $categoryId): bool
+    {
+        if ($categoryId === null) {
+            return false;
+        }
+
+        return DB::table('categories')->where('id', $categoryId)->value('type') === 'verbs';
+    }
+
+    private function entryCard(string $entryId, string $target, string $native, bool $verbsOnly = false): ?StudyCard
     {
         $rows = DB::table('entry_translations')
             ->where('entry_id', $entryId)
             ->whereIn('language_id', [$target, $native])
             ->orderBy('created_at')
             ->get(['language_id', 'text', 'transcription', 'part_of_speech']);
+
+        if ($verbsOnly) {
+            $verbRows = $rows->filter(
+                fn ($row) => ($row->part_of_speech ?? null) === 'verb'
+            );
+            $hasTarget = $verbRows->contains(fn ($row) => (string) $row->language_id === $target);
+            $hasNative = $verbRows->contains(fn ($row) => (string) $row->language_id !== $target);
+
+            // Never break a card: fall back to all translations if a side is missing.
+            if ($hasTarget && $hasNative) {
+                $rows = $verbRows;
+            }
+        }
 
         return $this->buildCard('entry', $entryId, $rows, $target);
     }
@@ -392,11 +419,36 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             learnableId: $id,
             frontText: (string) $front['text'],
             frontTranscription: $front['tr'],
-            backTexts: array_values(array_unique($back)),
+            backTexts: $this->uniqueTexts($back),
             hint: $hint,
-            targetTexts: array_values(array_unique($targetTexts)),
-            nativeTexts: array_values(array_unique($nativeTexts)),
+            targetTexts: $this->uniqueTexts($targetTexts),
+            nativeTexts: $this->uniqueTexts($nativeTexts),
         );
+    }
+
+    /**
+     * Case-insensitive dedupe, first occurrence wins.
+     *
+     * @param  list<string>  $texts
+     * @return list<string>
+     */
+    private function uniqueTexts(array $texts): array
+    {
+        $seen = [];
+        $out = [];
+
+        foreach ($texts as $text) {
+            $key = mb_strtolower(trim($text));
+
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $out[] = $text;
+        }
+
+        return $out;
     }
 
     public function distractors(

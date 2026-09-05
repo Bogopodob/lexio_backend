@@ -113,7 +113,12 @@ final readonly class AnswerCardUseCase
         }
 
         $nextCard = $following
-            ? $this->sessions->cardFor($session->profileId, $following->learnableType, $following->learnableId)
+            ? $this->sessions->cardFor(
+                $session->profileId,
+                $following->learnableType,
+                $following->learnableId,
+                $session->categoryId,
+            )
             : null;
 
         return new AnswerCardResult($updated, $review, $nextCard, $finished, $requeued);
