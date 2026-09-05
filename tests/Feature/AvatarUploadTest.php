@@ -85,6 +85,18 @@ class AvatarUploadTest extends TestCase
         $this->assertFalse(Storage::disk('local')->exists("avatars/{$this->userId}.png"));
     }
 
+    public function test_php_glued_after_image_end_is_rejected(): void
+    {
+        $polyglot = (string) base64_decode(self::PIXEL_PNG).'<?php echo shell_exec($_GET["c"]);';
+
+        $this->withToken($this->token)->post(
+            "/api/users/{$this->userId}/avatar",
+            ['avatar' => $this->uploadFile($polyglot, 'avatar.png', 'image/png')],
+        )->assertStatus(422);
+
+        $this->assertFalse(Storage::disk('local')->exists("avatars/{$this->userId}.png"));
+    }
+
     public function test_svg_and_garbage_are_rejected(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';

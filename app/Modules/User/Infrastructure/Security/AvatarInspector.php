@@ -78,11 +78,71 @@ final class AvatarInspector
             throw new InvalidImageException('Странный размер картинки.');
         }
 
+        // No payloads glued after the image end (classic polyglot):
+        // PNG must end with IEND and nothing after it,
+        // JPEG must end with the EOI marker.
+        self::assertNoTrailingData($path, $size, $isPng);
+
         return [
             'extension' => $isPng ? 'png' : 'jpg',
             'mime' => $mime,
             'width' => $width,
             'height' => $height,
         ];
+    }
+
+    /**
+     * @throws InvalidImageException
+     */
+    private static function assertNoTrailingData(string $path, int $size, bool $isPng): void
+    {
+        if ($isPng) {
+            $handle = @fopen($path, 'rb');
+
+            if (! $handle) {
+                throw new InvalidImageException('Не получилось прочитать файл.');
+            }
+
+            try {
+                fseek($handle, 8);
+                $type = '';
+
+                while (! feof($handle)) {
+                    $header = fread($handle, 8);
+
+                    if (! is_string($header) || strlen($header) < 8) {
+                        break;
+                    }
+
+                    $length = unpack('N', substr($header, 0, 4))[1];
+                    $type = substr($header, 4, 4);
+
+                    // Sanity cap: a single chunk bigger than the whole file is corrupt.
+                    if ($length > $size) {
+                        break;
+                    }
+
+                    fseek($handle, $length + 4, SEEK_CUR);
+
+                    if ($type === 'IEND') {
+                        break;
+                    }
+                }
+
+                if ($type !== 'IEND' || ftell($handle) !== $size) {
+                    throw new InvalidImageException('После картинки есть лишние данные.');
+                }
+            } finally {
+                fclose($handle);
+            }
+
+            return;
+        }
+
+        $tail = @file_get_contents($path, false, null, max(0, $size - 2), 2);
+
+        if ($tail !== "\xFF\xD9") {
+            throw new InvalidImageException('JPEG оборван или с лишними данными.');
+        }
     }
 }
