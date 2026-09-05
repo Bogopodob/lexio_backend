@@ -149,7 +149,7 @@ class GoalsAchievementsTest extends TestCase
             "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/achievements"
         );
 
-        $list->assertOk()->assertJsonCount(9, 'data');
+        $list->assertOk()->assertJsonCount(23, 'data');
 
         $review = $this->withToken($this->token)->postJson(
             "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/reviews",
@@ -178,5 +178,39 @@ class GoalsAchievementsTest extends TestCase
             ->assertJsonPath('data.words_learned', 1)
             ->assertJsonPath('data.streak_days', 1)
             ->assertJsonPath('data.xp', 50);
+    }
+
+    public function test_long_grind_achievements_track_progress(): void
+    {
+        $this->withToken($this->token)->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/reviews",
+            [
+                'learnable_type' => 'entry',
+                'learnable_id' => Uuid::uuid4()->toString(),
+                'quality' => 5,
+            ]
+        )->assertOk();
+
+        $after = $this->withToken($this->token)->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/achievements"
+        )->json('data');
+
+        $byCode = [];
+
+        foreach ($after as $a) {
+            $byCode[$a['code']] = $a;
+        }
+
+        // Long targets accumulate progress without unlocking.
+        $this->assertSame(1, $byCode['words_1000']['progress']);
+        $this->assertFalse($byCode['words_1000']['unlocked']);
+        $this->assertSame('legendary', $byCode['words_1000']['rarity']);
+        $this->assertSame(1, $byCode['reviews_100']['progress']);
+        $this->assertFalse($byCode['reviews_100']['unlocked']);
+        $this->assertSame(50, $byCode['xp_5000']['progress']);
+        $this->assertFalse($byCode['xp_5000']['unlocked']);
+
+        // Small targets unlock immediately.
+        $this->assertTrue($byCode['first_lesson']['unlocked']);
     }
 }
