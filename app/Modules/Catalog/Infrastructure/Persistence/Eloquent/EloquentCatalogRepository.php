@@ -137,6 +137,28 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
         return $id ? (string) $id : null;
     }
 
+    public function randomEntryIds(string $enId, string $ruId, int $count): array
+    {
+        return EntryModel::query()
+            ->whereExists(function ($q) use ($enId) {
+                $q->select(DB::raw(1))
+                    ->from('entry_translations as en')
+                    ->whereColumn('en.entry_id', 'entries.id')
+                    ->where('en.language_id', $enId);
+            })
+            ->whereExists(function ($q) use ($ruId) {
+                $q->select(DB::raw(1))
+                    ->from('entry_translations as ru')
+                    ->whereColumn('ru.entry_id', 'entries.id')
+                    ->where('ru.language_id', $ruId);
+            })
+            ->inRandomOrder()
+            ->limit(max(1, min(10, $count)))
+            ->pluck('entries.id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+    }
+
     public function getEntryDetails(string $entryId): ?EntryDetails
     {
         $entry = EntryModel::query()->find($entryId);

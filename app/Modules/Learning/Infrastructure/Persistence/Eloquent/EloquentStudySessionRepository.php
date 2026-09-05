@@ -227,7 +227,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         $native = (string) $profile->native_language_id;
         $verbsOnly = $this->isVerbsCategory($categoryId);
 
-        return match ($learnableType) {
+        $card = match ($learnableType) {
             'entry' => $this->entryCard($learnableId, $target, $native, $verbsOnly),
             'phrase' => $this->phraseCard($learnableId, $target, $native),
             'user_entry' => $this->userEntryCard($learnableId, $target, $native),

@@ -6,6 +6,7 @@ use App\Modules\Catalog\Infrastructure\Http\Requests\SearchEntriesRequest;
 use App\Modules\Catalog\Infrastructure\Http\Takes\GetEntryTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\ListCategoriesTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\ListLanguagesTake;
+use App\Modules\Catalog\Infrastructure\Http\Takes\QuizRoundTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\SearchEntriesTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\WordOfDayTake;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ final class CatalogController extends Controller
         private readonly SearchEntriesTake $searchEntriesTake,
         private readonly GetEntryTake $getEntryTake,
         private readonly WordOfDayTake $wordOfDayTake,
+        private readonly QuizRoundTake $quizRoundTake,
     ) {}
 
     public function languages(): JsonResponse
@@ -45,5 +47,10 @@ final class CatalogController extends Controller
     public function wordOfDay(Request $request): JsonResponse
     {
         return $this->wordOfDayTake->handle($request);
+    }
+
+    public function quizRound(Request $request): JsonResponse
+    {
+        return $this->quizRoundTake->handle($request);
     }
 }

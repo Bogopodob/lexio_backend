@@ -30,4 +30,11 @@ interface CatalogRepositoryInterface
      * Deterministic entry id for a calendar date (day of year modulo count).
      */
     public function pickDailyEntryId(string $date): ?string;
+
+    /**
+     * Random entry ids having translations in both languages.
+     *
+     * @return list<string>
+     */
+    public function randomEntryIds(string $enId, string $ruId, int $count): array;
 }

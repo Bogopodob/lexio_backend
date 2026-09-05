@@ -75,6 +75,33 @@ class CatalogTest extends TestCase
         $this->getJson('/api/catalog/word-of-day?date=not-a-date')->assertStatus(422);
     }
 
+    public function test_quiz_round_returns_question_and_options(): void
+    {
+        foreach ([['sun', 'солнце'], ['moon', 'луна'], ['star', 'звезда']] as [$enText, $ruText]) {
+            $entry = Entry::query()->create(['level' => 'A1']);
+            $meaning = EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => $ruText]);
+            EntryTranslation::query()->create([
+                'entry_id' => $entry->id, 'meaning_id' => $meaning->id,
+                'language_id' => $this->en, 'text' => $enText,
+            ]);
+            EntryTranslation::query()->create([
+                'entry_id' => $entry->id, 'meaning_id' => $meaning->id,
+                'language_id' => $this->ru, 'text' => $ruText,
+            ]);
+        }
+
+        $response = $this->getJson('/api/catalog/quiz-round?count=4');
+
+        $response->assertOk()->assertJsonPath('success', true);
+
+        $data = $response->json('data');
+
+        $this->assertNotEmpty($data['question']['word']);
+        $this->assertCount(4, $data['options']);
+        $this->assertContains($data['options'][$data['correct_index']], ['мир', 'солнце', 'луна', 'звезда']);
+        $this->assertCount(4, array_unique($data['options']));
+    }
+
     public function test_lists_languages(): void
     {
         $result = app(ListLanguagesUseCase::class)->handle(new ListLanguagesCommand);
