@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\CategorySeeder;
 use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\DemoContentSeeder;
 use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\LanguageSeeder;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry;
@@ -11,6 +12,8 @@ use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningCommand;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningUseCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 use Tests\TestCase;
 
 class StudySessionTest extends TestCase
@@ -28,7 +31,7 @@ class StudySessionTest extends TestCase
         parent::setUp();
 
         $this->seed(LanguageSeeder::class);
-        $this->seed(\App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\CategorySeeder::class);
+        $this->seed(CategorySeeder::class);
         $this->seed(DemoContentSeeder::class);
 
         $registered = $this->postJson('/api/register', [
@@ -54,6 +57,28 @@ class StudySessionTest extends TestCase
     private function auth()
     {
         return $this->withToken($this->token);
+    }
+
+    private function createWord(string $en, string $ru, int $rank): void
+    {
+        $enId = Language::query()->where('code', 'en')->value('id');
+        $ruId = Language::query()->where('code', 'ru')->value('id');
+
+        $entry = Entry::query()->create(['level' => 'A1', 'frequency_rank' => $rank]);
+        $meaning = EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => $en]);
+
+        EntryTranslation::query()->create([
+            'entry_id' => $entry->id,
+            'meaning_id' => $meaning->id,
+            'language_id' => $enId,
+            'text' => $en,
+        ]);
+        EntryTranslation::query()->create([
+            'entry_id' => $entry->id,
+            'meaning_id' => $meaning->id,
+            'language_id' => $ruId,
+            'text' => $ru,
+        ]);
     }
 
     public function test_full_lesson_flow_with_resume(): void
@@ -103,7 +128,8 @@ class StudySessionTest extends TestCase
             ['learnable_id' => $firstId, 'quality' => 5]
         )->assertNotFound();
 
-        // Drain the rest badly: session finishes.
+        // Drain the rest badly: each failed card is re-queued once,
+        // so every remaining card is answered twice before the finish.
         $answered = 1;
 
         while (true) {
@@ -123,18 +149,217 @@ class StudySessionTest extends TestCase
             $last->assertOk();
             $answered++;
 
-            $this->assertLessThanOrEqual(10, $answered);
+            $this->assertLessThanOrEqual(2 * $total, $answered);
         }
 
-        $this->assertSame($total, $answered);
+        $this->assertSame(2 * $total - 1, $answered);
 
         $final = $this->auth()->getJson(
             "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions"
         )->json('data.0');
 
         $this->assertSame('finished', $final['status']);
-        $this->assertSame($total, $final['answered']);
+        $this->assertSame(2 * $total - 1, $final['answered']);
+        $this->assertSame(2 * $total - 1, $final['total']);
         $this->assertSame(1, $final['correct']);
+    }
+
+    public function test_failed_card_returns_once_at_end(): void
+    {
+        $this->createWord('zzkw-first', 'зз-подск-первый', 1);
+        $this->createWord('zzkw-second', 'зз-подск-второй', 2);
+
+        $started = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 2]
+        );
+
+        $started->assertJsonPath('data.total', 2);
+        $sessionId = $started->json('data.id');
+
+        $first = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        // Fail the first card: it is re-queued, deck grows by one.
+        $bad = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/answer",
+            ['learnable_id' => $first['learnable_id'], 'quality' => 2]
+        );
+
+        $bad->assertOk()
+            ->assertJsonPath('data.requeued', true)
+            ->assertJsonPath('data.session.total', 3)
+            ->assertJsonPath('data.finished', false);
+
+        // The re-queued card waits at the end: next is the other word.
+        $second = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $this->assertNotSame($first['learnable_id'], $second['learnable_id']);
+
+        $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/answer",
+            ['learnable_id' => $second['learnable_id'], 'quality' => 5]
+        )->assertOk()->assertJsonPath('data.requeued', false);
+
+        // The failed word is back; failing it again does NOT re-queue twice.
+        $again = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $this->assertSame($first['learnable_id'], $again['learnable_id']);
+
+        $last = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/answer",
+            ['learnable_id' => $again['learnable_id'], 'quality' => 2]
+        );
+
+        $last->assertOk()
+            ->assertJsonPath('data.requeued', false)
+            ->assertJsonPath('data.finished', true)
+            ->assertJsonPath('data.session.total', 3)
+            ->assertJsonPath('data.session.answered', 3);
+    }
+
+    public function test_next_card_includes_progress(): void
+    {
+        $entryId = DB::table('entries')->value('id');
+        $this->assertNotNull($entryId);
+
+        DB::table('user_progresses')->insert([
+            'id' => (string) Uuid::uuid4(),
+            'user_id' => $this->userId,
+            'profile_id' => $this->profileId,
+            'learnable_type' => 'entry',
+            'learnable_id' => $entryId,
+            'easiness_factor' => 2.1,
+            'interval_days' => 6,
+            'repetition' => 2,
+            'quality_last' => 4,
+            'next_review_at' => now()->subDay(),
+            'last_reviewed_at' => now()->subDays(6),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $sessionId = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'due', 'limit' => 5]
+        )->json('data.id');
+
+        $next = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        );
+
+        $next->assertOk()
+            ->assertJsonPath('data.card.learnable_id', (string) $entryId)
+            ->assertJsonPath('data.progress.repetition', 2)
+            ->assertJsonPath('data.progress.interval_days', 6)
+            ->assertJsonPath('data.progress.easiness_factor', 2.1);
+    }
+
+    public function test_distractors_endpoint(): void
+    {
+        $this->createWord('zzkw-first', 'зз-подск-первый', 1);
+        $this->createWord('zzkw-second', 'зз-подск-второй', 2);
+        $this->createWord('zzkw-third', 'зз-подск-третий', 3);
+        $this->createWord('zzkw-fourth', 'зз-подск-четвёртый', 4);
+
+        $sessionId = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 1]
+        )->json('data.id');
+
+        $card = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $res = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/distractors?".http_build_query([
+                'learnable_type' => $card['learnable_type'],
+                'learnable_id' => $card['learnable_id'],
+                'side' => 'native',
+                'count' => 3,
+            ])
+        );
+
+        $res->assertOk();
+        $options = $res->json('data.options');
+
+        $this->assertCount(3, $options);
+
+        $native = array_map(fn ($t) => mb_strtolower(trim($t)), $card['native_texts']);
+
+        foreach ($options as $opt) {
+            $this->assertNotEmpty(trim($opt));
+            $this->assertNotContains(mb_strtolower(trim($opt)), $native);
+        }
+
+        $this->assertCount(3, array_unique(array_map(fn ($t) => mb_strtolower(trim($t)), $options)));
+
+        // Target side works too and validation rejects garbage.
+        $target = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/distractors?".http_build_query([
+                'learnable_type' => $card['learnable_type'],
+                'learnable_id' => $card['learnable_id'],
+                'side' => 'target',
+                'count' => 2,
+            ])
+        );
+
+        $target->assertOk();
+        $this->assertCount(2, $target->json('data.options'));
+
+        $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/distractors?".http_build_query([
+                'learnable_type' => 'entry',
+                'learnable_id' => $card['learnable_id'],
+                'side' => 'weird',
+            ])
+        )->assertStatus(422);
+    }
+
+    public function test_word_hint_saved_and_exposed_on_card(): void
+    {
+        $sessionId = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 1]
+        )->json('data.id');
+
+        $card = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $this->assertNull($card['own_hint']);
+
+        $saved = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/word-hint",
+            [
+                'learnable_type' => $card['learnable_type'],
+                'learnable_id' => $card['learnable_id'],
+                'own_hint' => 'моя ассоциация',
+            ]
+        );
+
+        $saved->assertOk()->assertJsonPath('data.own_hint', 'моя ассоциация');
+
+        $again = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/sessions/{$sessionId}/next"
+        )->json('data.card');
+
+        $this->assertSame('моя ассоциация', $again['own_hint']);
+
+        // Empty hint deletes it.
+        $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/word-hint",
+            [
+                'learnable_type' => $card['learnable_type'],
+                'learnable_id' => $card['learnable_id'],
+                'own_hint' => '',
+            ]
+        )->assertOk()->assertJsonPath('data.own_hint', null);
     }
 
     public function test_availability_counts(): void
@@ -222,27 +447,27 @@ class StudySessionTest extends TestCase
 
     public function test_each_topic_keeps_its_own_resume(): void
     {
-        $catA = \Illuminate\Support\Facades\DB::table('categories')->where('slug', 'verbs')->value('id');
-        $catB = \Illuminate\Support\Facades\DB::table('categories')->where('slug', 'nouns')->value('id');
+        $catA = DB::table('categories')->where('slug', 'verbs')->value('id');
+        $catB = DB::table('categories')->where('slug', 'nouns')->value('id');
 
         $this->assertNotNull($catA);
         $this->assertNotNull($catB);
 
-        $en = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'en')->value('id');
+        $en = Language::query()->where('code', 'en')->value('id');
 
         foreach ([[$catA, 'run-a'], [$catA, 'jump-a'], [$catB, 'run-b'], [$catB, 'jump-b']] as [$cat, $word]) {
-            $entry = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry::query()->create(['level' => 'A1']);
-            $meaning = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryMeaning::query()->create([
+            $entry = Entry::query()->create(['level' => 'A1']);
+            $meaning = EntryMeaning::query()->create([
                 'entry_id' => $entry->id,
                 'note' => $word,
             ]);
-            \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation::query()->create([
+            EntryTranslation::query()->create([
                 'entry_id' => $entry->id,
                 'meaning_id' => $meaning->id,
                 'language_id' => $en,
                 'text' => $word,
             ]);
-            \Illuminate\Support\Facades\DB::table('entry_category')->insert([
+            DB::table('entry_category')->insert([
                 'entry_id' => $entry->id,
                 'category_id' => $cat,
             ]);

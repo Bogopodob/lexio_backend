@@ -5,6 +5,7 @@ namespace App\Modules\Learning\Infrastructure\Http\Takes;
 use App\Modules\Learning\Application\UseCases\GetNextCard\GetNextCardCommand;
 use App\Modules\Learning\Application\UseCases\GetNextCard\GetNextCardUseCase;
 use App\Modules\Learning\Infrastructure\Http\Resources\LearningResponseResource;
+use App\Modules\Learning\Infrastructure\Http\Resources\ReviewProgressResource;
 use App\Modules\Learning\Infrastructure\Http\Resources\StudyCardResource;
 use Illuminate\Http\JsonResponse;
 
@@ -28,6 +29,9 @@ final readonly class GetNextCardTake
             'total' => $result['total'],
             'answered' => $result['answered'],
             'card' => StudyCardResource::make($result['card'])->resolve(request()),
+            'progress' => $result['progress']
+                ? ReviewProgressResource::make($result['progress'])->resolve(request())
+                : null,
         ])->response();
     }
 }

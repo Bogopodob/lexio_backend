@@ -39,6 +39,7 @@ final readonly class AnswerCardTake
             'xp_gained' => $result->review->xpGained,
             'newly_unlocked' => $result->review->newlyUnlocked,
             'finished' => $result->finished,
+            'requeued' => $result->requeued,
             'next_card' => $result->nextCard ? StudyCardResource::make($result->nextCard)->resolve(request()) : null,
         ])->response();
     }

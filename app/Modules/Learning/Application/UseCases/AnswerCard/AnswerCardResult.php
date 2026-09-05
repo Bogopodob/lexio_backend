@@ -13,5 +13,6 @@ final readonly class AnswerCardResult
         public ReviewResult $review,
         public ?StudyCard $nextCard,
         public bool $finished,
+        public bool $requeued = false,
     ) {}
 }

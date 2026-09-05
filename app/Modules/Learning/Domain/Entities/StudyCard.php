@@ -18,5 +18,6 @@ final readonly class StudyCard
         public ?string $hint,
         public array $targetTexts = [],
         public array $nativeTexts = [],
+        public ?string $ownHint = null,
     ) {}
 }

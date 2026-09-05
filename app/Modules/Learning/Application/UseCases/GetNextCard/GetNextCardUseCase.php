@@ -2,17 +2,20 @@
 
 namespace App\Modules\Learning\Application\UseCases\GetNextCard;
 
+use App\Modules\Learning\Domain\Entities\ReviewProgress;
 use App\Modules\Learning\Domain\Entities\StudyCard;
+use App\Modules\Learning\Domain\Ports\ProgressRepositoryInterface;
 use App\Modules\Learning\Domain\Ports\StudySessionRepositoryInterface;
 
 final readonly class GetNextCardUseCase
 {
     public function __construct(
         private StudySessionRepositoryInterface $sessions,
+        private ProgressRepositoryInterface $progress,
     ) {}
 
     /**
-     * @return array{session_id: string, position: int, total: int, answered: int, card: StudyCard}|null
+     * @return array{session_id: string, position: int, total: int, answered: int, card: StudyCard, progress: ?ReviewProgress}|null
      */
     public function handle(GetNextCardCommand $command): ?array
     {
@@ -40,6 +43,7 @@ final readonly class GetNextCardUseCase
             'total' => $session->total,
             'answered' => $session->answered,
             'card' => $card,
+            'progress' => $this->progress->find($session->profileId, $next->learnableType, $next->learnableId),
         ];
     }
 }

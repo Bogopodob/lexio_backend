@@ -23,6 +23,7 @@ final class StudyCardResource extends JsonResource
             'hint' => $this->card->hint,
             'target_texts' => $this->card->targetTexts,
             'native_texts' => $this->card->nativeTexts,
+            'own_hint' => $this->card->ownHint,
         ];
     }
 }

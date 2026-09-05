@@ -203,13 +203,39 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         $target = (string) $profile->target_language_id;
         $native = (string) $profile->native_language_id;
 
-        return match ($learnableType) {
+        $card = match ($learnableType) {
             'entry' => $this->entryCard($learnableId, $target, $native),
             'phrase' => $this->phraseCard($learnableId, $target, $native),
             'user_entry' => $this->userEntryCard($learnableId, $target, $native),
             'user_phrase' => $this->userPhraseCard($learnableId, $target, $native),
             default => null,
         };
+
+        if (! $card) {
+            return null;
+        }
+
+        $ownHint = DB::table('word_hints')
+            ->where('profile_id', $profileId)
+            ->where('learnable_type', $learnableType)
+            ->where('learnable_id', $learnableId)
+            ->value('hint');
+
+        if ($ownHint === null) {
+            return $card;
+        }
+
+        return new StudyCard(
+            learnableType: $card->learnableType,
+            learnableId: $card->learnableId,
+            frontText: $card->frontText,
+            frontTranscription: $card->frontTranscription,
+            backTexts: $card->backTexts,
+            hint: $card->hint,
+            targetTexts: $card->targetTexts,
+            nativeTexts: $card->nativeTexts,
+            ownHint: (string) $ownHint,
+        );
     }
 
     public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit, int $offset = 0): array
@@ -342,6 +368,108 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             targetTexts: array_values(array_unique($targetTexts)),
             nativeTexts: array_values(array_unique($nativeTexts)),
         );
+    }
+
+    public function distractors(
+        string $profileId,
+        string $learnableType,
+        string $learnableId,
+        string $side,
+        ?string $categoryId,
+        int $count,
+    ): array {
+        $count = max(1, min(6, $count));
+
+        $profile = ProfileModel::query()->find($profileId);
+
+        if (! $profile) {
+            return [];
+        }
+
+        $languageId = $side === 'target'
+            ? (string) $profile->target_language_id
+            : (string) $profile->native_language_id;
+        $userId = (string) $profile->user_id;
+
+        $card = $this->cardFor($profileId, $learnableType, $learnableId);
+        $sideTexts = $side === 'target' ? ($card?->targetTexts ?? []) : ($card?->nativeTexts ?? []);
+        $exclude = [];
+
+        foreach ($sideTexts as $text) {
+            $exclude[mb_strtolower(trim((string) $text))] = true;
+        }
+
+        $tables = [
+            ['type' => 'entry', 'table' => 'entry_translations', 'fk' => 'entry_id', 'user' => false],
+            ['type' => 'phrase', 'table' => 'phrase_translations', 'fk' => 'phrase_id', 'user' => false],
+            ['type' => 'user_entry', 'table' => 'user_entry_translations', 'fk' => 'user_entry_id', 'user' => true, 'parent' => 'user_entries', 'parent_fk' => 'user_entry_id'],
+            ['type' => 'user_phrase', 'table' => 'user_phrase_translations', 'fk' => 'user_phrase_id', 'user' => true, 'parent' => 'user_phrases', 'parent_fk' => 'user_phrase_id'],
+        ];
+
+        usort($tables, fn ($a, $b) => ($a['type'] === $learnableType ? 0 : 1) <=> ($b['type'] === $learnableType ? 0 : 1));
+
+        $picked = [];
+        $seen = $exclude;
+
+        $collect = function (array $cfg, bool $sameCategory) use (
+            $languageId, $userId, $learnableType, $learnableId, $categoryId, $count, &$picked, &$seen,
+        ): void {
+            if (count($picked) >= $count) {
+                return;
+            }
+
+            if ($sameCategory && ($cfg['type'] !== 'entry' || $categoryId === null)) {
+                return;
+            }
+
+            $query = DB::table($cfg['table'].' as t')
+                ->where('t.language_id', $languageId)
+                ->inRandomOrder()
+                ->limit($count * 5)
+                ->select('t.text');
+
+            if ($cfg['type'] === $learnableType) {
+                $query->where("t.{$cfg['fk']}", '!=', $learnableId);
+            }
+
+            if ($cfg['user']) {
+                $parent = $cfg['parent'];
+                $parentFk = $cfg['parent_fk'];
+                $query->join("$parent as p", 'p.id', '=', "t.$parentFk")
+                    ->where('p.user_id', $userId);
+            }
+
+            if ($sameCategory) {
+                $query->join('entry_category as ec', 'ec.entry_id', '=', 't.entry_id')
+                    ->where('ec.category_id', $categoryId);
+            }
+
+            foreach ($query->get() as $row) {
+                if (count($picked) >= $count) {
+                    break;
+                }
+
+                $text = trim((string) $row->text);
+                $key = mb_strtolower($text);
+
+                if ($text === '' || isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $picked[] = $text;
+            }
+        };
+
+        foreach ($tables as $cfg) {
+            $collect($cfg, true);
+        }
+
+        foreach ($tables as $cfg) {
+            $collect($cfg, false);
+        }
+
+        return array_values($picked);
     }
 
     /**

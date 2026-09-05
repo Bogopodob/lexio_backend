@@ -52,6 +52,29 @@ final readonly class AnswerCardUseCase
             $quality,
         );
 
+        // Failed cards return once more at the end of the deck so the
+        // lesson does not let go of weak words. Bounded to a single
+        // re-queue per learnable so the session always terminates.
+        $requeued = false;
+
+        if (! $correct) {
+            $occurrences = 0;
+
+            foreach ($session->items as $item) {
+                if ($item->learnableId === $next->learnableId) {
+                    $occurrences++;
+                }
+            }
+
+            if ($occurrences <= 1) {
+                $this->sessions->appendItems($command->sessionId, [[
+                    'learnable_type' => $next->learnableType,
+                    'learnable_id' => $next->learnableId,
+                ]]);
+                $requeued = true;
+            }
+        }
+
         $answered = $session->answered + 1;
 
         $updated = $this->sessions->saveSession(new StudySession(
@@ -60,7 +83,7 @@ final readonly class AnswerCardUseCase
             profileId: $session->profileId,
             source: $session->source,
             status: $session->status,
-            total: $session->total,
+            total: $session->total + ($requeued ? 1 : 0),
             answered: $answered,
             correct: $session->correct + ($correct ? 1 : 0),
             xpEarned: $session->xpEarned + $review->xpGained,
@@ -93,6 +116,6 @@ final readonly class AnswerCardUseCase
             ? $this->sessions->cardFor($session->profileId, $following->learnableType, $following->learnableId)
             : null;
 
-        return new AnswerCardResult($updated, $review, $nextCard, $finished);
+        return new AnswerCardResult($updated, $review, $nextCard, $finished, $requeued);
     }
 }

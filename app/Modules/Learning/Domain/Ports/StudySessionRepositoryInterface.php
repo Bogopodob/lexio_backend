@@ -59,4 +59,19 @@ interface StudySessionRepositoryInterface
     public function findNewEntries(string $profileId, ?string $categoryId, ?string $level, int $limit, int $offset = 0): array;
 
     public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int;
+
+    /**
+     * Wrong answer options in the requested language side for quiz modes.
+     * Same source table and category first, then falls back to other tables.
+     *
+     * @return list<string>
+     */
+    public function distractors(
+        string $profileId,
+        string $learnableType,
+        string $learnableId,
+        string $side,
+        ?string $categoryId,
+        int $count,
+    ): array;
 }

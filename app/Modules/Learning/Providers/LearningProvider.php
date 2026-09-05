@@ -8,12 +8,14 @@ use App\Modules\Learning\Domain\Ports\LanguageProfileRepositoryInterface;
 use App\Modules\Learning\Domain\Ports\ProgressRepositoryInterface;
 use App\Modules\Learning\Domain\Ports\StreakRepositoryInterface;
 use App\Modules\Learning\Domain\Ports\StudySessionRepositoryInterface;
+use App\Modules\Learning\Domain\Ports\WordHintRepositoryInterface;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentAchievementRepository;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentGoalRepository;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentLanguageProfileRepository;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentProgressRepository;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentStreakRepository;
 use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentStudySessionRepository;
+use App\Modules\Learning\Infrastructure\Persistence\Eloquent\EloquentWordHintRepository;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +29,7 @@ final class LearningProvider extends ServiceProvider
         $this->app->singleton(GoalRepositoryInterface::class, EloquentGoalRepository::class);
         $this->app->singleton(AchievementRepositoryInterface::class, EloquentAchievementRepository::class);
         $this->app->singleton(StudySessionRepositoryInterface::class, EloquentStudySessionRepository::class);
+        $this->app->singleton(WordHintRepositoryInterface::class, EloquentWordHintRepository::class);
     }
 
     public function boot(): void

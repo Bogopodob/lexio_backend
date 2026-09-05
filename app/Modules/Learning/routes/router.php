@@ -23,4 +23,6 @@ Route::prefix('learning')->middleware(['jwt.auth', 'user.owner'])->group(functio
     Route::post('/users/{userId}/sessions/{sessionId}/answer', [LearningController::class, 'answerCard']);
     Route::post('/users/{userId}/sessions/{sessionId}/finish', [LearningController::class, 'finishSession']);
     Route::get('/users/{userId}/profiles/{profileId}/availability', [LearningController::class, 'availability']);
+    Route::post('/users/{userId}/profiles/{profileId}/word-hint', [LearningController::class, 'saveWordHint']);
+    Route::get('/users/{userId}/profiles/{profileId}/distractors', [LearningController::class, 'distractors']);
 });

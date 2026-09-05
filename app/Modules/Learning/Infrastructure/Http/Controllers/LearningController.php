@@ -3,7 +3,9 @@
 namespace App\Modules\Learning\Infrastructure\Http\Controllers;
 
 use App\Modules\Learning\Infrastructure\Http\Requests\AnswerCardRequest;
+use App\Modules\Learning\Infrastructure\Http\Requests\GetDistractorsRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\SaveGoalRequest;
+use App\Modules\Learning\Infrastructure\Http\Requests\SaveWordHintRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\StartLearningRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\StartSessionRequest;
 use App\Modules\Learning\Infrastructure\Http\Requests\SubmitReviewRequest;
@@ -14,6 +16,7 @@ use App\Modules\Learning\Infrastructure\Http\Takes\DueReviewsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\EvaluateAchievementsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\FinishSessionTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetAvailabilityTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\GetDistractorsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetNextCardTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\GetStatsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListAchievementsTake;
@@ -22,6 +25,7 @@ use App\Modules\Learning\Infrastructure\Http\Takes\ListGoalsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListProfilesTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\ListSessionsTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\SaveGoalTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\SaveWordHintTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\StartLearningTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\StartSessionTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\SubmitReviewTake;
@@ -51,6 +55,8 @@ final class LearningController extends Controller
         private readonly ListSessionsTake $listSessionsTake,
         private readonly FinishSessionTake $finishSessionTake,
         private readonly GetAvailabilityTake $getAvailabilityTake,
+        private readonly SaveWordHintTake $saveWordHintTake,
+        private readonly GetDistractorsTake $getDistractorsTake,
     ) {}
 
     public function start(string $userId, StartLearningRequest $request): JsonResponse
@@ -146,5 +152,15 @@ final class LearningController extends Controller
     public function availability(string $userId, string $profileId, Request $request): JsonResponse
     {
         return $this->getAvailabilityTake->handle($userId, $profileId, $request);
+    }
+
+    public function saveWordHint(string $userId, string $profileId, SaveWordHintRequest $request): JsonResponse
+    {
+        return $this->saveWordHintTake->handle($userId, $profileId, $request);
+    }
+
+    public function distractors(string $userId, string $profileId, GetDistractorsRequest $request): JsonResponse
+    {
+        return $this->getDistractorsTake->handle($userId, $profileId, $request);
     }
 }
