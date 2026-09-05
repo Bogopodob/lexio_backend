@@ -18,7 +18,7 @@ final readonly class RemoveFriendTake
         $deleted = $this->useCase->handle(new RemoveFriendCommand($userId, $friendshipId));
 
         if (! $deleted) {
-            return response()->json(['success' => false, 'message' => 'Friendship not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.friendship.not_found')], 404);
         }
 
         return FriendResponseResource::make(['deleted' => true])->response();

@@ -30,52 +30,52 @@ final class AvatarInspector
     public static function inspect(string $path): array
     {
         if (! is_file($path) || ! is_readable($path)) {
-            throw new InvalidImageException('Файл не читается.');
+            throw new InvalidImageException(__('api.avatar.unreadable'));
         }
 
         $size = filesize($path);
 
         if ($size === false || $size <= 0) {
-            throw new InvalidImageException('Пустой файл.');
+            throw new InvalidImageException(__('api.avatar.empty'));
         }
 
         if ($size > self::MAX_BYTES) {
-            throw new InvalidImageException('Изображение больше 5 МБ.');
+            throw new InvalidImageException(__('api.avatar.too_big'));
         }
 
         $head = @file_get_contents($path, false, null, 0, 8);
 
         if (! is_string($head) || $head === '') {
-            throw new InvalidImageException('Не получилось прочитать файл.');
+            throw new InvalidImageException(__('api.avatar.unreadable'));
         }
 
         $isPng = str_starts_with($head, self::PNG_MAGIC);
         $isJpeg = str_starts_with($head, self::JPEG_MAGIC);
 
         if (! $isPng && ! $isJpeg) {
-            throw new InvalidImageException('Это не PNG и не JPEG.');
+            throw new InvalidImageException(__('api.avatar.not_image'));
         }
 
         $info = @getimagesize($path);
 
         if ($info === false) {
-            throw new InvalidImageException('Файл не открывается как картинка.');
+            throw new InvalidImageException(__('api.avatar.not_image'));
         }
 
         $mime = $info['mime'] ?? '';
 
         if ($isPng && $mime !== 'image/png') {
-            throw new InvalidImageException('PNG повреждён.');
+            throw new InvalidImageException(__('api.avatar.png_broken'));
         }
 
         if ($isJpeg && $mime !== 'image/jpeg') {
-            throw new InvalidImageException('JPEG повреждён.');
+            throw new InvalidImageException(__('api.avatar.jpeg_broken'));
         }
 
         [$width, $height] = [$info[0], $info[1]];
 
         if ($width < 1 || $height < 1 || $width > self::MAX_DIMENSION || $height > self::MAX_DIMENSION) {
-            throw new InvalidImageException('Странный размер картинки.');
+            throw new InvalidImageException(__('api.avatar.bad_size'));
         }
 
         // No payloads glued after the image end (classic polyglot):
@@ -100,7 +100,7 @@ final class AvatarInspector
             $handle = @fopen($path, 'rb');
 
             if (! $handle) {
-                throw new InvalidImageException('Не получилось прочитать файл.');
+                throw new InvalidImageException(__('api.avatar.unreadable'));
             }
 
             try {
@@ -130,7 +130,7 @@ final class AvatarInspector
                 }
 
                 if ($type !== 'IEND' || ftell($handle) !== $size) {
-                    throw new InvalidImageException('После картинки есть лишние данные.');
+                    throw new InvalidImageException(__('api.avatar.trailing_data'));
                 }
             } finally {
                 fclose($handle);
@@ -142,7 +142,7 @@ final class AvatarInspector
         $tail = @file_get_contents($path, false, null, max(0, $size - 2), 2);
 
         if ($tail !== "\xFF\xD9") {
-            throw new InvalidImageException('JPEG оборван или с лишними данными.');
+            throw new InvalidImageException(__('api.avatar.jpeg_truncated'));
         }
     }
 }

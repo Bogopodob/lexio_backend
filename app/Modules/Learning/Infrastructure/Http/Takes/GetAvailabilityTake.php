@@ -26,7 +26,7 @@ final readonly class GetAvailabilityTake
         );
 
         if ($result === null) {
-            return response()->json(['success' => false, 'message' => 'Profile not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.profile.not_found')], 404);
         }
 
         return LearningResponseResource::make($result)->response();

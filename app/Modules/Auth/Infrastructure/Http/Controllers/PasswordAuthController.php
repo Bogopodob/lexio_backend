@@ -38,7 +38,7 @@ final class PasswordAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'unauthorized',
-                'message' => 'Missing bearer token',
+                'message' => __('api.auth.no_token'),
             ], 401);
         }
 
@@ -47,7 +47,7 @@ final class PasswordAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'unauthorized',
-                'message' => 'Invalid token',
+                'message' => __('api.auth.invalid_token'),
             ], 401);
         }
 
@@ -56,7 +56,7 @@ final class PasswordAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'unauthorized',
-                'message' => 'Invalid token subject',
+                'message' => __('api.auth.invalid_subject'),
             ], 401);
         }
 

@@ -21,13 +21,13 @@ final readonly class WordOfDayTake
         $date = (string) $request->query('date', date('Y-m-d'));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            return response()->json(['success' => false, 'message' => 'Invalid date'], 422);
+            return response()->json(['success' => false, 'message' => __('api.date.invalid')], 422);
         }
 
         $details = $this->useCase->handle(new WordOfDayCommand($date));
 
         if (! $details) {
-            return response()->json(['success' => false, 'message' => 'No words yet'], 404);
+            return response()->json(['success' => false, 'message' => __('api.words.empty')], 404);
         }
 
         $enId = null;
@@ -55,7 +55,7 @@ final readonly class WordOfDayTake
         }
 
         if (! $word || ! $translation) {
-            return response()->json(['success' => false, 'message' => 'No words yet'], 404);
+            return response()->json(['success' => false, 'message' => __('api.words.empty')], 404);
         }
 
         $enIds = [];

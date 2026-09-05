@@ -20,7 +20,7 @@ final readonly class EnsureRouteUserMatchesToken
             return response()->json([
                 'success' => false,
                 'error' => 'unauthorized',
-                'message' => 'Unauthenticated',
+                'message' => __('api.auth.unauthenticated'),
             ], ResponseHttpCode::HTTP_UNAUTHORIZED);
         }
 
@@ -30,7 +30,7 @@ final readonly class EnsureRouteUserMatchesToken
             return response()->json([
                 'success' => false,
                 'error' => 'forbidden',
-                'message' => 'You can only access your own resources',
+                'message' => __('api.auth.forbidden'),
             ], ResponseHttpCode::HTTP_FORBIDDEN);
         }
 

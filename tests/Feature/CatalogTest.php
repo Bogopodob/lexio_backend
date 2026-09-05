@@ -102,6 +102,28 @@ class CatalogTest extends TestCase
         $this->assertCount(4, array_unique($data['options']));
     }
 
+    public function test_error_messages_follow_accept_language(): void
+    {
+        $missing = '00000000-0000-0000-0000-000000000000';
+
+        $this->getJson("/api/catalog/entries/{$missing}")
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Entry not found');
+
+        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'ru'])
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Запись не найдена');
+
+        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'ru-RU,ru;q=0.9,en;q=0.8'])
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Запись не найдена');
+
+        // Unknown language falls back to English.
+        $this->getJson("/api/catalog/entries/{$missing}", ['Accept-Language' => 'de'])
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Entry not found');
+    }
+
     public function test_lists_languages(): void
     {
         $result = app(ListLanguagesUseCase::class)->handle(new ListLanguagesCommand);

@@ -30,7 +30,7 @@ final readonly class SaveGoalTake
         );
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Goal not found or limit reached'], 422);
+            return response()->json(['success' => false, 'message' => __('api.goal.not_found_or_limit')], 422);
         }
 
         $data = UserGoalResource::make($result)->resolve(request());

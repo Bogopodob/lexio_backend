@@ -15,7 +15,7 @@ final readonly class InternalApiAuthMiddleware
         if (! $expected) {
             return response()->json([
                 'success' => false,
-                'message' => 'internal_api.not_configured',
+                'message' => __('api.internal_api.not_configured'),
             ], ResponseHttpStatus::HTTP_INTERNAL_SERVER_ERROR);
         }
 
@@ -24,7 +24,7 @@ final readonly class InternalApiAuthMiddleware
         if (! $provided || ! hash_equals($expected, $provided)) {
             return response()->json([
                 'success' => false,
-                'message' => 'internal_api.unauthorized',
+                'message' => __('api.internal_api.unauthorized'),
             ], ResponseHttpStatus::HTTP_UNAUTHORIZED);
         }
 

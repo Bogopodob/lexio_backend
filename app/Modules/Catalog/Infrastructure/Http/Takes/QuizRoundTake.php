@@ -30,7 +30,7 @@ final readonly class QuizRoundTake
         }
 
         if (! $enId || ! $ruId) {
-            return response()->json(['success' => false, 'message' => 'No words yet'], 404);
+            return response()->json(['success' => false, 'message' => __('api.words.empty')], 404);
         }
 
         $round = $this->useCase->handle(new QuizRoundCommand(
@@ -40,7 +40,7 @@ final readonly class QuizRoundTake
         ));
 
         if (! $round) {
-            return response()->json(['success' => false, 'message' => 'No words yet'], 404);
+            return response()->json(['success' => false, 'message' => __('api.words.empty')], 404);
         }
 
         return CatalogResponseResource::make([

@@ -24,7 +24,7 @@ final readonly class JwtAuthenticateMiddleware
 
         if (! $token) {
             return response()->json([
-                'message' => 'Unauthenticated',
+                'message' => __('api.auth.unauthenticated'),
                 'error' => 'Token not provided',
             ], ResponseHttpCode::HTTP_UNAUTHORIZED);
         }
@@ -33,14 +33,14 @@ final readonly class JwtAuthenticateMiddleware
 
         if (! $payload) {
             return response()->json([
-                'message' => 'Unauthenticated',
+                'message' => __('api.auth.unauthenticated'),
                 'error' => 'Invalid or expired token',
             ], ResponseHttpCode::HTTP_UNAUTHORIZED);
         }
 
         if ($this->revokedTokens->isRevoked(hash('sha256', $token))) {
             return response()->json([
-                'message' => 'Unauthenticated',
+                'message' => __('api.auth.unauthenticated'),
                 'error' => 'Token revoked',
             ], ResponseHttpCode::HTTP_UNAUTHORIZED);
         }
@@ -56,7 +56,7 @@ final readonly class JwtAuthenticateMiddleware
                 'request_ip' => $request->ip(),
             ]);
             // Можно отклонить запрос:
-            // return response()->json(['message' => 'IP mismatch'], 403);
+            // return response()->json(['message' => __('api.auth.ip_mismatch')], 403);
         }
 
         $user = new GenericUser([

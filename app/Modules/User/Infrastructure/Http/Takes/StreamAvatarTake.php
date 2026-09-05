@@ -31,6 +31,6 @@ final readonly class StreamAvatarTake
             ]);
         }
 
-        return response()->json(['success' => false, 'message' => 'Not found'], 404);
+        return response()->json(['success' => false, 'message' => __('api.not_found')], 404);
     }
 }

@@ -18,7 +18,7 @@ final readonly class DeleteGoalTake
         $deleted = $this->useCase->handle(new DeleteGoalCommand($profileId, $userId, $goalId));
 
         if (! $deleted) {
-            return response()->json(['success' => false, 'message' => 'Goal not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.goal.not_found')], 404);
         }
 
         return LearningResponseResource::make(['deleted' => true])->response();

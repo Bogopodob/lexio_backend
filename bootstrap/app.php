@@ -2,6 +2,7 @@
 
 use App\Shared\Laravel\Infrastructure\Security\Middleware\EnsureRouteUserMatchesToken;
 use App\Shared\Laravel\Infrastructure\Security\Middleware\JwtAuthenticateMiddleware;
+use App\Shared\Laravel\Infrastructure\Security\Middleware\SetLocaleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => JwtAuthenticateMiddleware::class,
             'user.owner' => EnsureRouteUserMatchesToken::class,
         ]);
+        $middleware->appendToGroup('api', SetLocaleMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

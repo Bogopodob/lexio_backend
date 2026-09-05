@@ -28,7 +28,7 @@ final readonly class UpdateProfileTake
         );
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Profile not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.profile.not_found')], 404);
         }
 
         $data = LanguageProfileResource::make($result)->resolve(request());

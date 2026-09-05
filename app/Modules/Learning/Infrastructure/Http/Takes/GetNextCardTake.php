@@ -20,7 +20,7 @@ final readonly class GetNextCardTake
         $result = $this->useCase->handle(new GetNextCardCommand($sessionId, $userId));
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Session not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.session.not_found')], 404);
         }
 
         return LearningResponseResource::make([

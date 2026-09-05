@@ -26,7 +26,7 @@ final readonly class DueReviewsTake
         );
 
         if ($result === null) {
-            return response()->json(['success' => false, 'message' => 'Profile not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.profile.not_found')], 404);
         }
 
         $data = array_map(fn ($p) => ReviewProgressResource::make($p)->resolve($request), $result);

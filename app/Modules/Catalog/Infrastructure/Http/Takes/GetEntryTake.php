@@ -19,7 +19,7 @@ final readonly class GetEntryTake
         $result = $this->useCase->handle(new GetEntryCommand($entryId));
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Entry not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.entry.not_found')], 404);
         }
 
         $data = EntryDetailsResource::make($result)->resolve(request());

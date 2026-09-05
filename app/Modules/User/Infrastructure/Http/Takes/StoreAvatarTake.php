@@ -19,7 +19,7 @@ final readonly class StoreAvatarTake
         $file = $request->file('avatar');
 
         if (! $file || ! $file->isValid()) {
-            return response()->json(['success' => false, 'message' => 'Файл не загрузился.'], 422);
+            return response()->json(['success' => false, 'message' => __('api.avatar.upload_failed')], 422);
         }
 
         try {

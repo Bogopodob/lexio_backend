@@ -25,7 +25,7 @@ final readonly class SendFriendRequestTake
         );
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.user.not_found')], 404);
         }
 
         return FriendResponseResource::make([

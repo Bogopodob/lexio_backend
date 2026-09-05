@@ -30,7 +30,7 @@ final readonly class StartSessionTake
         );
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Nothing to learn'], 422);
+            return response()->json(['success' => false, 'message' => __('api.learn.empty')], 422);
         }
 
         $data = StudySessionResource::make($result)->resolve(request());

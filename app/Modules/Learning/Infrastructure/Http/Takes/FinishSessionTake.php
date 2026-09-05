@@ -19,7 +19,7 @@ final readonly class FinishSessionTake
         $result = $this->useCase->handle(new FinishSessionCommand($sessionId, $userId));
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Session not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.session.not_found')], 404);
         }
 
         $data = StudySessionResource::make($result)->resolve(request());

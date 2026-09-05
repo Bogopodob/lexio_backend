@@ -29,7 +29,7 @@ final readonly class AnswerCardTake
         );
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Session not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.session.not_found')], 404);
         }
 
         return LearningResponseResource::make([

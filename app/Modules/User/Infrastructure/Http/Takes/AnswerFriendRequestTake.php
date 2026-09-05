@@ -18,7 +18,7 @@ final readonly class AnswerFriendRequestTake
         $result = $this->useCase->handle(new AnswerFriendRequestCommand($userId, $requestId, $accept));
 
         if (! $result) {
-            return response()->json(['success' => false, 'message' => 'Request not found'], 404);
+            return response()->json(['success' => false, 'message' => __('api.request.not_found')], 404);
         }
 
         return FriendResponseResource::make(['status' => $result->status])->response();
