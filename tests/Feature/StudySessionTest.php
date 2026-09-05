@@ -13,6 +13,7 @@ use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningCommand
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningUseCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
 use Tests\TestCase;
 
@@ -523,6 +524,67 @@ class StudySessionTest extends TestCase
         $this->assertSame('abandoned', $byId[$sessionA['id']]);
         $this->assertSame('active', $byId[$sessionB['id']]);
         $this->assertSame('active', $byId[$sessionA2['id']]);
+    }
+
+    public function test_weekly_activity_buckets(): void
+    {
+        $now = now();
+
+        foreach ([
+            ['days' => 6, 'answered' => 10, 'xp' => 100, 'mins' => 20],
+            ['days' => 1, 'answered' => 5, 'xp' => 50, 'mins' => 10],
+            ['days' => 0, 'answered' => 2, 'xp' => 20, 'mins' => null],
+        ] as $row) {
+            $start = $now->copy()->subDays($row['days']);
+
+            DB::table('study_sessions')->insert([
+                'id' => (string) Str::uuid(),
+                'user_id' => $this->userId,
+                'profile_id' => $this->profileId,
+                'source' => 'mixed',
+                'status' => 'finished',
+                'total' => 5,
+                'answered' => $row['answered'],
+                'correct' => $row['answered'],
+                'xp_earned' => $row['xp'],
+                'started_at' => $start,
+                'finished_at' => $row['mins'] === null ? null : $start->copy()->addMinutes($row['mins']),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $res = $this->auth()->getJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/weekly"
+        );
+
+        $res->assertOk();
+        $days = $res->json('data');
+
+        $this->assertCount(7, $days);
+        $this->assertSame($now->copy()->subDays(6)->toDateString(), $days[0]['date']);
+
+        $byDate = [];
+
+        foreach ($days as $d) {
+            $byDate[$d['date']] = $d;
+        }
+
+        $sixAgo = $now->copy()->subDays(6)->toDateString();
+        $this->assertSame(10, $byDate[$sixAgo]['words']);
+        $this->assertSame(100, $byDate[$sixAgo]['xp']);
+        $this->assertSame(20, $byDate[$sixAgo]['minutes']);
+
+        $yesterday = $now->copy()->subDays(1)->toDateString();
+        $this->assertSame(5, $byDate[$yesterday]['words']);
+
+        $today = $now->toDateString();
+        $this->assertSame(2, $byDate[$today]['words']);
+        $this->assertSame(0, $byDate[$today]['minutes']);
+
+        $empty = $now->copy()->subDays(3)->toDateString();
+        $this->assertSame(0, $byDate[$empty]['words']);
+        $this->assertSame(0, $byDate[$empty]['minutes']);
     }
 
     public function test_guest_cannot_study(): void

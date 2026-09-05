@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Database\Seeders\LanguageSeeder;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryMeaning;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningCommand;
 use App\Modules\Learning\Application\UseCases\StartLearning\StartLearningUseCase;
+use App\Modules\Learning\Domain\Ports\StudySessionRepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -82,6 +85,60 @@ class IrregularVerbsTest extends TestCase
                 ->where('entry_translations.entry_id', $entryId)
                 ->count()
         );
+    }
+
+    public function test_verb_lesson_hides_noun_translations(): void
+    {
+        $this->artisan('catalog:import-irregular-verbs', [
+            '--limit' => 15,
+            '--no-transcribe' => true,
+        ])->assertSuccessful();
+
+        $en = Language::query()->where('code', 'en')->value('id');
+        $ru = Language::query()->where('code', 'ru')->value('id');
+
+        $canId = EntryTranslation::query()
+            ->where('language_id', $en)
+            ->where('text', 'can')
+            ->value('entry_id');
+
+        $this->assertNotNull($canId);
+
+        // Simulate the legacy dictionary: a noun meaning on the same entry.
+        $noun = EntryMeaning::query()->create(['entry_id' => $canId, 'note' => 'Банка']);
+        EntryTranslation::query()->create([
+            'entry_id' => $canId, 'meaning_id' => $noun->id,
+            'language_id' => $en, 'text' => 'can', 'part_of_speech' => 'noun',
+        ]);
+        EntryTranslation::query()->create([
+            'entry_id' => $canId, 'meaning_id' => $noun->id,
+            'language_id' => $ru, 'text' => 'Банка', 'part_of_speech' => 'noun',
+        ]);
+
+        $registered = $this->postJson('/api/register', [
+            'email' => 'verbs-filter@example.com',
+            'password' => 'secret123',
+        ])->json('data');
+
+        $profileId = app(StartLearningUseCase::class)->handle(
+            new StartLearningCommand($registered['user']['id'], (string) $en, (string) $ru)
+        )->profile->id;
+
+        $repo = app(StudySessionRepositoryInterface::class);
+        $irr50 = DB::table('categories')->where('slug', 'irr-50')->value('id');
+
+        $verbCard = $repo->cardFor($profileId, 'entry', (string) $canId, (string) $irr50);
+
+        $this->assertNotNull($verbCard);
+        $this->assertNotContains('Банка', $verbCard->nativeTexts);
+        $this->assertContains('мочь; уметь', $verbCard->nativeTexts);
+        $this->assertContains('can', $verbCard->targetTexts);
+
+        // Outside verb lessons the full card is intact.
+        $fullCard = $repo->cardFor($profileId, 'entry', (string) $canId, null);
+
+        $this->assertNotNull($fullCard);
+        $this->assertContains('Банка', $fullCard->nativeTexts);
     }
 
     public function test_verb_card_exposes_all_three_forms(): void

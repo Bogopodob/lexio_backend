@@ -192,6 +192,25 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->count();
     }
 
+    public function recentSessions(string $profileId, int $days): array
+    {
+        $days = max(1, min(31, $days));
+
+        return SessionModel::query()
+            ->where('profile_id', $profileId)
+            ->where('started_at', '>=', Carbon::now()->subDays($days - 1)->startOfDay())
+            ->orderBy('started_at', 'desc')
+            ->limit(500)
+            ->get(['started_at', 'finished_at', 'answered', 'xp_earned'])
+            ->map(fn (SessionModel $m) => [
+                'started_at' => $m->started_at ? (string) $m->started_at : null,
+                'finished_at' => $m->finished_at ? (string) $m->finished_at : null,
+                'answered' => (int) $m->answered,
+                'xp_earned' => (int) $m->xp_earned,
+            ])
+            ->all();
+    }
+
     public function cardFor(
         string $profileId,
         string $learnableType,

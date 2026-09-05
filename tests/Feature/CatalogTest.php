@@ -12,6 +12,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryMeaning;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\EntryTranslation;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\WordForm;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -132,5 +133,56 @@ class CatalogTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonCount(2, 'data.meanings')
             ->assertJsonCount(4, 'data.translations');
+    }
+
+    public function test_clean_data_merges_typo_and_subsets(): void
+    {
+        $entry = Entry::query()->create(['level' => 'A1']);
+
+        $good = EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => 'Тест']);
+        EntryTranslation::query()->create([
+            'entry_id' => $entry->id, 'meaning_id' => $good->id,
+            'language_id' => $this->ru, 'text' => 'Тест',
+        ]);
+        $goodEn = EntryTranslation::query()->create([
+            'entry_id' => $entry->id, 'meaning_id' => $good->id,
+            'language_id' => $this->en, 'text' => 'test',
+        ]);
+
+        $typo = EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => 'Тестъ']);
+        $typoEn = EntryTranslation::query()->create([
+            'entry_id' => $entry->id, 'meaning_id' => $typo->id,
+            'language_id' => $this->en, 'text' => 'test',
+        ]);
+
+        // A form anchored to the doomed translation must survive the merge.
+        WordForm::query()->create([
+            'entry_translation_id' => $typoEn->id, 'form' => 'tested', 'form_type' => 'past',
+        ]);
+
+        $sub = EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => 'Проба']);
+        EntryTranslation::query()->create([
+            'entry_id' => $entry->id, 'meaning_id' => $sub->id,
+            'language_id' => $this->ru, 'text' => 'Проба',
+        ]);
+        EntryMeaning::query()->create(['entry_id' => $entry->id, 'note' => 'проба; проверка']);
+
+        // Dry run changes nothing.
+        $this->artisan('catalog:clean-data')->assertSuccessful();
+        $this->assertNotNull(EntryMeaning::query()->find($typo->id));
+
+        $this->artisan('catalog:clean-data', ['--fix' => true])->assertSuccessful();
+
+        // Typo merged into «Тест», subset merged into «проба; проверка».
+        $this->assertNull(EntryMeaning::query()->find($typo->id));
+        $this->assertNull(EntryMeaning::query()->where('entry_id', $entry->id)->where('note', 'Проба')->first());
+        $this->assertSame(2, EntryMeaning::query()->where('entry_id', $entry->id)->count());
+
+        // The form followed its translation to the surviving meaning.
+        $this->assertSame(
+            $goodEn->id,
+            WordForm::query()
+                ->where('form', 'tested')->value('entry_translation_id')
+        );
     }
 }

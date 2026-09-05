@@ -30,6 +30,7 @@ use App\Modules\Learning\Infrastructure\Http\Takes\StartLearningTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\StartSessionTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\SubmitReviewTake;
 use App\Modules\Learning\Infrastructure\Http\Takes\UpdateProfileTake;
+use App\Modules\Learning\Infrastructure\Http\Takes\WeeklyActivityTake;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -57,6 +58,7 @@ final class LearningController extends Controller
         private readonly GetAvailabilityTake $getAvailabilityTake,
         private readonly SaveWordHintTake $saveWordHintTake,
         private readonly GetDistractorsTake $getDistractorsTake,
+        private readonly WeeklyActivityTake $weeklyActivityTake,
     ) {}
 
     public function start(string $userId, StartLearningRequest $request): JsonResponse
@@ -152,6 +154,11 @@ final class LearningController extends Controller
     public function availability(string $userId, string $profileId, Request $request): JsonResponse
     {
         return $this->getAvailabilityTake->handle($userId, $profileId, $request);
+    }
+
+    public function weekly(string $userId, string $profileId, Request $request): JsonResponse
+    {
+        return $this->weeklyActivityTake->handle($userId, $profileId, $request);
     }
 
     public function saveWordHint(string $userId, string $profileId, SaveWordHintRequest $request): JsonResponse

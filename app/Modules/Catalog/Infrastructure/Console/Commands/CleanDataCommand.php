@@ -42,24 +42,23 @@ class CleanDataCommand extends Command
             $this->info('Dry run — nothing will be written. Pass --fix to apply.');
         }
 
-        DB::transaction(function () use ($rules, $fix) {
-            if (in_array(self::RULE_TYPO, $rules, true)) {
-                $this->ruleHardsignTypo();
-            }
+        try {
+            DB::transaction(function () use ($rules, $fix) {
+                if (in_array(self::RULE_TYPO, $rules, true)) {
+                    $this->ruleHardsignTypo();
+                }
 
-            if (in_array(self::RULE_SUBSET, $rules, true)) {
-                $this->ruleSubsetMerge();
-            }
+                if (in_array(self::RULE_SUBSET, $rules, true)) {
+                    $this->ruleSubsetMerge();
+                }
 
-            if (! $fix) {
-                throw new DryRunRollback();
-            }
-        }, 3, function (\Throwable $e) {
-            // Swallow our own rollback marker, rethrow real errors.
-            if (! $e instanceof DryRunRollback) {
-                throw $e;
-            }
-        });
+                if (! $fix) {
+                    throw new DryRunRollback;
+                }
+            });
+        } catch (DryRunRollback) {
+            // Dry run: rolled back intentionally.
+        }
 
         if ($this->planned === []) {
             $this->info('No issues found.');
@@ -108,6 +107,14 @@ class CleanDataCommand extends Command
     }
 
     /**
+     * Multibyte-safe trailing hard-sign strip (rtrim is byte-based).
+     */
+    private function stripHardsign(string $value): string
+    {
+        return (string) preg_replace('/ъ+$/u', '', trim($value));
+    }
+
+    /**
      * Russian words ending with ъ (modern orthography has none):
      * merge into the sibling meaning without it, or strip it.
      */
@@ -118,7 +125,7 @@ class CleanDataCommand extends Command
             ->get(['id', 'entry_id', 'note']);
 
         foreach ($meanings as $meaning) {
-            $fixed = rtrim($meaning->note, 'ъ');
+            $fixed = $this->stripHardsign($meaning->note);
 
             if ($fixed === '') {
                 continue;
@@ -135,13 +142,34 @@ class CleanDataCommand extends Command
                 $this->plan(self::RULE_TYPO, 'rename', "«{$meaning->note}» → «{$fixed}»");
                 $meaning->update(['note' => $fixed]);
 
-                $renamed = EntryTranslation::query()
+                $texts = EntryTranslation::query()
                     ->where('meaning_id', $meaning->id)
                     ->where('text', 'LIKE', '%ъ')
-                    ->update(['text' => DB::raw("RTRIM(text, 'ъ')")]);
+                    ->get();
 
-                if ($renamed > 0) {
-                    $this->plan(self::RULE_TYPO, 'rename-texts', "{$renamed} translation(s) under «{$fixed}»");
+                foreach ($texts as $t) {
+                    $newText = $this->stripHardsign($t->text);
+
+                    if ($newText === '') {
+                        continue;
+                    }
+
+                    $conflict = EntryTranslation::query()
+                        ->where('meaning_id', $meaning->id)
+                        ->where('language_id', $t->language_id)
+                        ->where('id', '!=', $t->id)
+                        ->whereRaw('LOWER(text) = ?', [mb_strtolower($newText)])
+                        ->exists();
+
+                    if ($conflict) {
+                        $this->reanchorForms((string) $t->id);
+                        $t->delete();
+                        $this->translationsDeleted++;
+
+                        continue;
+                    }
+
+                    $t->update(['text' => $newText]);
                 }
             }
         }
@@ -218,6 +246,7 @@ class CleanDataCommand extends Command
                 $this->reanchorForms((string) $t->id);
                 $t->delete();
                 $this->translationsDeleted++;
+
                 continue;
             }
 
@@ -252,6 +281,7 @@ class CleanDataCommand extends Command
 
         $target = EntryTranslation::query()
             ->where('entry_id', $anchor->entry_id)
+            ->where('language_id', $anchor->language_id)
             ->where('id', '!=', $translationId)
             ->when($keepMeaningId !== null, fn ($q) => $q->where('meaning_id', $keepMeaningId))
             ->orderBy('created_at')

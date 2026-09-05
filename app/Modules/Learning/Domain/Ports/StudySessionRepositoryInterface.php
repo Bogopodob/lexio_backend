@@ -70,6 +70,13 @@ interface StudySessionRepositoryInterface
     public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int;
 
     /**
+     * Recent sessions for activity charts, newest first.
+     *
+     * @return list<array{started_at: ?string, finished_at: ?string, answered: int, xp_earned: int}>
+     */
+    public function recentSessions(string $profileId, int $days): array;
+
+    /**
      * Wrong answer options in the requested language side for quiz modes.
      * Same source table and category first, then falls back to other tables.
      *
