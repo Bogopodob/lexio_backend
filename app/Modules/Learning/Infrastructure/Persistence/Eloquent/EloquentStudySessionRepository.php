@@ -221,7 +221,34 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->where('learnable_id', $learnableId)
             ->value('hint');
 
-        if ($ownHint === null) {
+        $forms = [];
+        $formsPattern = null;
+
+        if ($learnableType === 'entry') {
+            $formsPattern = DB::table('entries')
+                ->where('id', $learnableId)
+                ->value('forms_pattern');
+
+            $forms = DB::table('word_forms')
+                ->join(
+                    'entry_translations',
+                    'entry_translations.id',
+                    '=',
+                    'word_forms.entry_translation_id'
+                )
+                ->where('entry_translations.entry_id', $learnableId)
+                ->where('entry_translations.language_id', $target)
+                ->orderBy('word_forms.form_type')
+                ->get(['word_forms.form', 'word_forms.form_type', 'word_forms.transcription'])
+                ->map(fn ($row) => [
+                    'form' => (string) $row->form,
+                    'form_type' => (string) $row->form_type,
+                    'transcription' => $row->transcription !== null ? (string) $row->transcription : null,
+                ])
+                ->all();
+        }
+
+        if ($ownHint === null && $forms === [] && $formsPattern === null) {
             return $card;
         }
 
@@ -234,7 +261,9 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             hint: $card->hint,
             targetTexts: $card->targetTexts,
             nativeTexts: $card->nativeTexts,
-            ownHint: (string) $ownHint,
+            ownHint: $ownHint !== null ? (string) $ownHint : null,
+            forms: $forms,
+            formsPattern: $formsPattern !== null ? (string) $formsPattern : null,
         );
     }
 

@@ -33,6 +33,7 @@ final class Entry extends Model
         'image_path',
         'level',
         'frequency_rank',
+        'forms_pattern',
         'created_at',
         'updated_at',
     ];

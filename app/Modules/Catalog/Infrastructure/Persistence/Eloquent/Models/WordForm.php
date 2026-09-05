@@ -11,6 +11,7 @@ use Ramsey\Uuid\UuidInterface;
  * @property UuidInterface id
  * @property UuidInterface entry_translation_id
  * @property string form
+ * @property ?string transcription
  * @property string form_type
  * @property ?Carbon created_at
  * @property ?Carbon updated_at
@@ -32,6 +33,7 @@ final class WordForm extends Model
         'id',
         'entry_translation_id',
         'form',
+        'transcription',
         'form_type',
         'created_at',
         'updated_at',
