@@ -6,6 +6,7 @@ use App\Modules\User\Infrastructure\Http\Requests\SendFriendRequestRequest;
 use App\Modules\User\Infrastructure\Http\Takes\AnswerFriendRequestTake;
 use App\Modules\User\Infrastructure\Http\Takes\ListFriendRequestsTake;
 use App\Modules\User\Infrastructure\Http\Takes\ListFriendsTake;
+use App\Modules\User\Infrastructure\Http\Takes\ListLeaderboardTake;
 use App\Modules\User\Infrastructure\Http\Takes\RemoveFriendTake;
 use App\Modules\User\Infrastructure\Http\Takes\SearchUsersTake;
 use App\Modules\User\Infrastructure\Http\Takes\SendFriendRequestTake;
@@ -22,6 +23,7 @@ final class FriendController extends Controller
         private readonly AnswerFriendRequestTake $answerFriendRequestTake,
         private readonly RemoveFriendTake $removeFriendTake,
         private readonly SearchUsersTake $searchUsersTake,
+        private readonly ListLeaderboardTake $listLeaderboardTake,
     ) {}
 
     public function index(string $userId): JsonResponse
@@ -57,5 +59,10 @@ final class FriendController extends Controller
     public function search(string $userId, Request $request): JsonResponse
     {
         return $this->searchUsersTake->handle($userId, $request);
+    }
+
+    public function leaderboard(string $userId): JsonResponse
+    {
+        return $this->listLeaderboardTake->handle($userId);
     }
 }

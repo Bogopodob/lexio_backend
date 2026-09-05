@@ -10,4 +10,10 @@ Route::prefix('catalog')->group(function (): void {
     Route::get('/word-of-day', [CatalogController::class, 'wordOfDay']);
     Route::get('/quiz-round', [CatalogController::class, 'quizRound']);
     Route::get('/entries/{entryId}', [CatalogController::class, 'show']);
+
+    Route::middleware(['jwt.auth'])->group(function (): void {
+        Route::post('/categories', [CatalogController::class, 'storeCategory']);
+        Route::patch('/categories/{categoryId}', [CatalogController::class, 'updateCategory']);
+        Route::delete('/categories/{categoryId}', [CatalogController::class, 'destroyCategory']);
+    });
 });

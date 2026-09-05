@@ -22,6 +22,7 @@ final class AuthResultResource extends JsonResource
                 'id' => (string) $this->result->user->id,
                 'name' => $this->result->user->name,
                 'email' => (string) $this->result->user->email,
+                'is_premium' => $this->result->user->isPremium,
             ],
         ];
     }

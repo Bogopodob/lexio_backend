@@ -310,14 +310,20 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->offset(max(0, $offset))
             ->select('entries.id');
 
-        return $query->get()
+        $deck = $query->get()
             ->map(fn ($r) => ['learnable_type' => 'entry', 'learnable_id' => (string) $r->id])
             ->all();
+
+        // Own words go first: the user added them on purpose.
+        // Offset applies to the catalog part only.
+        $own = $this->findNewOwnLearnables($profileId, $categoryId, max(0, $limit - count($deck)));
+
+        return array_merge($own, $deck);
     }
 
     public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int
     {
-        return DB::table('entries')
+        $catalog = DB::table('entries')
             ->leftJoin('user_progresses', function ($join) use ($profileId) {
                 $join->on('user_progresses.learnable_id', '=', 'entries.id')
                     ->where('user_progresses.profile_id', '=', $profileId)
@@ -330,6 +336,49 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
                     ->where('entry_category.category_id', $categoryId);
             })
             ->count();
+
+        return $catalog + count($this->findNewOwnLearnables($profileId, $categoryId, 100));
+    }
+
+    /**
+     * Never-reviewed own words/phrases of the profile owner.
+     *
+     * @return list<array{learnable_type: string, learnable_id: string}>
+     */
+    private function findNewOwnLearnables(string $profileId, ?string $categoryId, int $limit): array
+    {
+        if ($limit <= 0) {
+            return [];
+        }
+
+        $userId = ProfileModel::query()->where('id', $profileId)->value('user_id');
+
+        if (! $userId) {
+            return [];
+        }
+
+        $deck = [];
+
+        foreach (['user_entry' => 'user_entries', 'user_phrase' => 'user_phrases'] as $type => $table) {
+            $ids = DB::table($table)
+                ->leftJoin('user_progresses', function ($join) use ($profileId, $type, $table) {
+                    $join->on('user_progresses.learnable_id', '=', "{$table}.id")
+                        ->where('user_progresses.profile_id', '=', $profileId)
+                        ->where('user_progresses.learnable_type', '=', $type);
+                })
+                ->where("{$table}.user_id", $userId)
+                ->whereNull('user_progresses.id')
+                ->when($categoryId !== null, fn ($q) => $q->where("{$table}.category_id", $categoryId))
+                ->orderBy("{$table}.created_at")
+                ->limit(max(1, min(100, $limit)))
+                ->pluck("{$table}.id");
+
+            foreach ($ids as $id) {
+                $deck[] = ['learnable_type' => $type, 'learnable_id' => (string) $id];
+            }
+        }
+
+        return array_slice($deck, 0, $limit);
     }
 
     private function isVerbsCategory(?string $categoryId): bool

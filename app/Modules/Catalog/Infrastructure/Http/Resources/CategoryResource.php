@@ -17,6 +17,7 @@ final class CategoryResource extends JsonResource
         return [
             'id' => $this->category->id,
             'parent_id' => $this->category->parentId,
+            'user_id' => $this->category->userId,
             'slug' => $this->category->slug,
             'is_system' => $this->category->isSystem,
             'type' => $this->category->type,

@@ -23,6 +23,8 @@ final readonly class ListCategoriesTake
             new ListCategoriesCommand(
                 type: $request->query('type'),
                 locale: in_array($locale, ['ru', 'en'], true) ? $locale : 'ru',
+                // Public catalog never exposes other users' categories.
+                systemOnly: true,
             )
         );
 

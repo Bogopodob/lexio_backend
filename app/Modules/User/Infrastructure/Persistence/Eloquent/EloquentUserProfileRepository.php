@@ -5,6 +5,7 @@ namespace App\Modules\User\Infrastructure\Persistence\Eloquent;
 use App\Modules\User\Domain\Entities\UserProfile;
 use App\Modules\User\Domain\Ports\UserProfileRepositoryInterface;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\UserProfile as UserProfileModel;
+use Illuminate\Support\Facades\DB;
 
 final class EloquentUserProfileRepository implements UserProfileRepositoryInterface
 {
@@ -46,6 +47,7 @@ final class EloquentUserProfileRepository implements UserProfileRepositoryInterf
             city: $profile->city,
             birthDate: $profile->birth_date ? $profile->birth_date->format('Y-m-d') : null,
             tags: $profile->tags === null ? null : array_values((array) $profile->tags),
+            isPremium: (bool) DB::table('users')->where('id', $profile->user_id)->value('is_premium'),
             reminderSchedule: $profile->reminder_schedule === null ? null : (array) $profile->reminder_schedule,
             gender: $profile->gender,
         );

@@ -118,10 +118,16 @@ final readonly class EloquentAuthUserRepository implements AuthUserRepositoryInt
                 password: $resolvedPasswordHash !== ''
                     ? PasswordValueObject::fromHash($resolvedPasswordHash)
                     : null,
+                isPremium: self::isPremium($userId),
             );
         } catch (InvalidArgumentException) {
             return null;
         }
+    }
+
+    private static function isPremium(string $userId): bool
+    {
+        return (bool) DB::table('users')->where('id', $userId)->value('is_premium');
     }
 
     /**
@@ -207,6 +213,7 @@ final readonly class EloquentAuthUserRepository implements AuthUserRepositoryInt
                 password: $account['password_hash'] !== ''
                     ? PasswordValueObject::fromHash($account['password_hash'])
                     : null,
+                isPremium: self::isPremium($account['id']),
             );
         } catch (InvalidArgumentException) {
             return null;

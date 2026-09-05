@@ -13,5 +13,6 @@ final readonly class AuthUser
         public string $name,
         public EmailProviderIdValueObject $email,
         public ?PasswordValueObject $password = null,
+        public bool $isPremium = false,
     ) {}
 }

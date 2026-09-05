@@ -14,7 +14,8 @@ Route::prefix('users')->middleware(['jwt.auth', 'user.owner'])->group(function (
     Route::post('/{userId}/avatar', [UserProfileController::class, 'storeAvatar']);
 
     Route::get('/{userId}/friends', [FriendController::class, 'index']);
-    Route::post('/{userId}/friends/requests', [FriendController::class, 'store']);
+    Route::get('/{userId}/friends/leaderboard', [FriendController::class, 'leaderboard'])->middleware('premium');
+    Route::post('/{userId}/friends/requests', [FriendController::class, 'store'])->middleware('premium');
     Route::get('/{userId}/friends/requests', [FriendController::class, 'requests']);
     Route::post('/{userId}/friends/requests/{requestId}/accept', [FriendController::class, 'accept']);
     Route::post('/{userId}/friends/requests/{requestId}/decline', [FriendController::class, 'decline']);

@@ -30,10 +30,11 @@ final readonly class ListCategoriesWithProgressUseCase
         $learned = $this->progress->countLearnedByCategory($command->profileId);
         $result = [];
 
-        foreach ($this->catalog->listCategories($command->type, $command->locale) as $category) {
+        foreach ($this->catalog->listCategories($command->type, $command->locale, $command->userId) as $category) {
             $result[] = [
                 'id' => $category->id,
                 'parent_id' => $category->parentId,
+                'user_id' => $category->userId,
                 'slug' => $category->slug,
                 'type' => $category->type,
                 'color' => $category->color,

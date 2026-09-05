@@ -19,5 +19,6 @@ final readonly class UserProfile
         public ?array $tags = null,
         public ?array $reminderSchedule = null,
         public ?string $gender = null,
+        public bool $isPremium = false,
     ) {}
 }

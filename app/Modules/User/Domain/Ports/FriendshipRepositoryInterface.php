@@ -4,6 +4,7 @@ namespace App\Modules\User\Domain\Ports;
 
 use App\Modules\User\Domain\Entities\Friendship;
 use App\Modules\User\Domain\Entities\FriendWithProfile;
+use App\Modules\User\Domain\Entities\LeaderboardRow;
 
 interface FriendshipRepositoryInterface
 {
@@ -31,6 +32,13 @@ interface FriendshipRepositoryInterface
      * @return list<FriendWithProfile>
      */
     public function friendsOf(string $userId): array;
+
+    /**
+     * Self + accepted friends ordered by streak (desc), name (asc).
+     *
+     * @return list<LeaderboardRow>
+     */
+    public function leaderboard(string $userId): array;
 
     /**
      * @return list<array{user_id: string, name: ?string, email: string}>

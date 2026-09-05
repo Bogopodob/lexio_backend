@@ -26,6 +26,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\PhraseTransla
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\WordForm as WordFormModel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 
 final class EloquentCatalogRepository implements CatalogRepositoryInterface
 {
@@ -48,12 +49,24 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
         ))->all();
     }
 
-    public function listCategories(?string $type = null, string $locale = 'ru'): array
-    {
+    public function listCategories(
+        ?string $type = null,
+        string $locale = 'ru',
+        ?string $ownerId = null,
+        bool $systemOnly = false,
+    ): array {
         $query = CategoryModel::query()->orderBy('sort');
 
         if ($type !== null) {
             $query->where('type', $type);
+        }
+
+        if ($ownerId !== null && ! $systemOnly) {
+            $query->where(function ($q) use ($ownerId) {
+                $q->whereNull('user_id')->orWhere('user_id', $ownerId);
+            });
+        } else {
+            $query->whereNull('user_id');
         }
 
         $models = $query->get();
@@ -93,6 +106,153 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             name: $names->get((string) $m->id),
             entriesCount: (int) ($counts->get((string) $m->id) ?? 0),
         ))->all();
+    }
+
+    public function findCategory(string $id): ?Category
+    {
+        $model = CategoryModel::query()->find($id);
+
+        if (! $model) {
+            return null;
+        }
+
+        return new Category(
+            id: (string) $model->id,
+            parentId: $model->parent_id ? (string) $model->parent_id : null,
+            userId: $model->user_id ? (string) $model->user_id : null,
+            slug: $model->slug,
+            isSystem: (bool) $model->is_system,
+            type: $model->type,
+            color: $model->color,
+            icon: $model->icon,
+            sort: (int) $model->sort,
+            name: null,
+            entriesCount: 0,
+        );
+    }
+
+    public function findCategoryBySlug(string $slug, ?string $userId): ?Category
+    {
+        $model = CategoryModel::query()
+            ->where('slug', $slug)
+            ->when($userId === null, fn ($q) => $q->whereNull('user_id'), fn ($q) => $q->where('user_id', $userId))
+            ->first();
+
+        return $model ? $this->findCategory((string) $model->id) : null;
+    }
+
+    public function createUserCategory(
+        string $userId,
+        string $slug,
+        string $type,
+        ?string $parentId,
+        ?string $color,
+        ?string $icon,
+        string $name,
+        string $locale,
+    ): Category {
+        $id = (string) Uuid::uuid4();
+
+        CategoryModel::query()->create([
+            'id' => $id,
+            'parent_id' => $parentId,
+            'user_id' => $userId,
+            'slug' => $slug,
+            'is_system' => false,
+            'type' => $type,
+            'color' => $color,
+            'icon' => $icon,
+            'sort' => 500,
+        ]);
+
+        DB::table('translations')->insert([
+            'id' => (string) Uuid::uuid4(),
+            'entity_type' => CategoryModel::class,
+            'entity_id' => $id,
+            'locale' => $locale,
+            'field' => 'name',
+            'value' => $name,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return new Category(
+            id: $id,
+            parentId: $parentId,
+            userId: $userId,
+            slug: $slug,
+            isSystem: false,
+            type: $type,
+            color: $color,
+            icon: $icon,
+            sort: 500,
+            name: $name,
+            entriesCount: 0,
+        );
+    }
+
+    public function updateUserCategory(string $id, string $userId, array $patch): ?Category
+    {
+        $model = CategoryModel::query()
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (! $model) {
+            return null;
+        }
+
+        $fields = [];
+
+        foreach (['color', 'icon', 'parent_id'] as $field) {
+            if (array_key_exists($field, $patch)) {
+                $fields[$field] = $patch[$field];
+            }
+        }
+
+        if ($fields !== []) {
+            $model->update($fields);
+        }
+
+        if (isset($patch['name'], $patch['locale'])) {
+            DB::table('translations')->updateOrInsert(
+                [
+                    'entity_type' => CategoryModel::class,
+                    'entity_id' => $id,
+                    'locale' => $patch['locale'],
+                    'field' => 'name',
+                ],
+                ['value' => $patch['name'], 'updated_at' => now()],
+            );
+        }
+
+        $fresh = $this->findCategory($id);
+
+        if ($fresh && isset($patch['name'])) {
+            $fresh = new Category(
+                id: $fresh->id,
+                parentId: $fresh->parentId,
+                userId: $fresh->userId,
+                slug: $fresh->slug,
+                isSystem: $fresh->isSystem,
+                type: $fresh->type,
+                color: $fresh->color,
+                icon: $fresh->icon,
+                sort: $fresh->sort,
+                name: $patch['name'],
+                entriesCount: $fresh->entriesCount,
+            );
+        }
+
+        return $fresh;
+    }
+
+    public function deleteUserCategory(string $id, string $userId): bool
+    {
+        return (bool) CategoryModel::query()
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->delete();
     }
 
     public function searchEntries(string $languageId, string $query, ?string $level = null, int $limit = 20): array

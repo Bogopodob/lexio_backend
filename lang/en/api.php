@@ -34,6 +34,13 @@ return [
     ],
     'not_found' => 'Not found',
 
+    'subscription' => [
+        'required' => 'Premium subscription required',
+    ],
+    'category' => [
+        'invalid' => 'Invalid category data',
+        'forbidden' => 'Not your category',
+    ],
     'auth' => [
         'unauthenticated' => 'Unauthenticated',
         'no_token' => 'Missing bearer token',

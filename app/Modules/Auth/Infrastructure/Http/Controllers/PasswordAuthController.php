@@ -66,6 +66,7 @@ final class PasswordAuthController extends Controller
                 'id' => (string) $user->id,
                 'name' => $user->name,
                 'email' => (string) $user->email,
+                'is_premium' => $user->isPremium,
             ],
         ]);
     }

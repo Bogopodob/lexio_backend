@@ -25,6 +25,7 @@ final class UserProfileResource extends JsonResource
             'tags' => $this->profile->tags ?? [],
             'reminder_schedule' => $this->profile->reminderSchedule,
             'gender' => $this->profile->gender,
+            'is_premium' => $this->profile->isPremium,
         ];
     }
 }

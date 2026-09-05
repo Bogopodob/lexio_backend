@@ -170,6 +170,8 @@ class GoalsAchievementsTest extends TestCase
         $this->assertTrue($first['unlocked']);
         $this->assertSame(1, $first['progress']);
 
+        $this->artisan('user:grant-premium', ['email' => 'goals@example.com'])->assertSuccessful();
+
         $stats = $this->withToken($this->token)->getJson(
             "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/stats"
         );
@@ -178,6 +180,17 @@ class GoalsAchievementsTest extends TestCase
             ->assertJsonPath('data.words_learned', 1)
             ->assertJsonPath('data.streak_days', 1)
             ->assertJsonPath('data.xp', 50);
+    }
+
+    public function test_stats_requires_premium(): void
+    {
+        $url = "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/stats";
+
+        $this->withToken($this->token)->getJson($url)->assertForbidden();
+
+        $this->artisan('user:grant-premium', ['email' => 'goals@example.com'])->assertSuccessful();
+
+        $this->withToken($this->token)->getJson($url)->assertOk();
     }
 
     public function test_long_grind_achievements_track_progress(): void

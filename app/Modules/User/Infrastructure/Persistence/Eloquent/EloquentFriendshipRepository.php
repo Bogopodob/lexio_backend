@@ -4,6 +4,7 @@ namespace App\Modules\User\Infrastructure\Persistence\Eloquent;
 
 use App\Modules\User\Domain\Entities\Friendship;
 use App\Modules\User\Domain\Entities\FriendWithProfile;
+use App\Modules\User\Domain\Entities\LeaderboardRow;
 use App\Modules\User\Domain\Ports\FriendshipRepositoryInterface;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\Friendship as FriendshipModel;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\User as UserModel;
@@ -150,6 +151,65 @@ final class EloquentFriendshipRepository implements FriendshipRepositoryInterfac
         }
 
         return $result;
+    }
+
+    public function leaderboard(string $userId): array
+    {
+        $friendIds = FriendshipModel::query()
+            ->where('status', 'accepted')
+            ->where(function ($q) use ($userId) {
+                $q->where('requester_id', $userId)->orWhere('addressee_id', $userId);
+            })
+            ->get()
+            ->map(fn (FriendshipModel $m) => (string) $m->requester_id === $userId
+                ? (string) $m->addressee_id
+                : (string) $m->requester_id)
+            ->values()
+            ->all();
+
+        $ids = array_values(array_unique([$userId, ...$friendIds]));
+
+        $users = UserModel::query()->whereIn('id', $ids)->get()->keyBy(fn ($u) => (string) $u->id);
+        $profiles = UserProfileModel::query()->whereIn('user_id', $ids)->get()->keyBy(fn ($p) => (string) $p->user_id);
+
+        // Learning-module read models (infrastructure-level join, see DB_SCHEMA.md).
+        $langProfiles = DB::table('user_language_profiles')
+            ->whereIn('user_id', $ids)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy(fn ($r) => (string) $r->user_id);
+        $stats = DB::table('user_language_stats')
+            ->whereIn('profile_id', $langProfiles->pluck('id')->all())
+            ->get()
+            ->keyBy(fn ($r) => (string) $r->profile_id);
+
+        $rows = [];
+
+        foreach ($ids as $id) {
+            $user = $users->get($id);
+
+            if (! $user) {
+                continue;
+            }
+
+            $profile = $profiles->get($id);
+            $langProfile = $langProfiles->get($id);
+            $stat = $langProfile ? $stats->get((string) $langProfile->id) : null;
+
+            $rows[] = new LeaderboardRow(
+                userId: $id,
+                name: ($profile && $profile->name) ? $profile->name : $user->name,
+                avatar: $profile ? $profile->avatar : null,
+                level: $langProfile ? $langProfile->level : null,
+                streakDays: $stat ? (int) $stat->streak_days : 0,
+                isSelf: $id === $userId,
+            );
+        }
+
+        usort($rows, fn (LeaderboardRow $a, LeaderboardRow $b) => $b->streakDays <=> $a->streakDays
+            ?: strcmp((string) $a->name, (string) $b->name));
+
+        return $rows;
     }
 
     public function searchUsers(string $excludeUserId, string $query, int $limit): array

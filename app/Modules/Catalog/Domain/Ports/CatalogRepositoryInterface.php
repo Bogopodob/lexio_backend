@@ -15,9 +15,36 @@ interface CatalogRepositoryInterface
     public function listLanguages(bool $onlyActive = true): array;
 
     /**
+     * System categories (user_id null) plus, when $ownerId is given,
+     * the owner's own categories. $systemOnly hides user categories.
+     *
      * @return list<Category>
      */
-    public function listCategories(?string $type = null, string $locale = 'ru'): array;
+    public function listCategories(
+        ?string $type = null,
+        string $locale = 'ru',
+        ?string $ownerId = null,
+        bool $systemOnly = false,
+    ): array;
+
+    public function findCategory(string $id): ?Category;
+
+    public function findCategoryBySlug(string $slug, ?string $userId): ?Category;
+
+    public function createUserCategory(
+        string $userId,
+        string $slug,
+        string $type,
+        ?string $parentId,
+        ?string $color,
+        ?string $icon,
+        string $name,
+        string $locale,
+    ): Category;
+
+    public function updateUserCategory(string $id, string $userId, array $patch): ?Category;
+
+    public function deleteUserCategory(string $id, string $userId): bool;
 
     /**
      * @return list<EntrySearchHit>

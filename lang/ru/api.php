@@ -34,6 +34,13 @@ return [
     ],
     'not_found' => 'Не найдено',
 
+    'subscription' => [
+        'required' => 'Нужна Premium-подписка',
+    ],
+    'category' => [
+        'invalid' => 'Некорректные данные категории',
+        'forbidden' => 'Не твоя категория',
+    ],
     'auth' => [
         'unauthenticated' => 'Не авторизован',
         'no_token' => 'Нет токена авторизации',

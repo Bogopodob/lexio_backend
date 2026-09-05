@@ -528,6 +528,8 @@ class StudySessionTest extends TestCase
 
     public function test_weekly_activity_buckets(): void
     {
+        $this->artisan('user:grant-premium', ['email' => 'student@example.com'])->assertSuccessful();
+
         $now = now();
 
         foreach ([
@@ -585,6 +587,74 @@ class StudySessionTest extends TestCase
         $empty = $now->copy()->subDays(3)->toDateString();
         $this->assertSame(0, $byDate[$empty]['words']);
         $this->assertSame(0, $byDate[$empty]['minutes']);
+    }
+
+    public function test_own_category_lesson_uses_own_words(): void
+    {
+        $en = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'en')->value('id');
+        $ru = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'ru')->value('id');
+
+        $catId = $this->auth()->postJson('/api/catalog/categories', ['name' => 'Моё'])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->auth()->postJson(
+            "/api/library/users/{$this->userId}/entries",
+            [
+                'category_id' => $catId,
+                'translations' => [
+                    ['language_id' => $en, 'text' => 'myword'],
+                    ['language_id' => $ru, 'text' => 'моёслово'],
+                ],
+            ]
+        )->assertCreated();
+
+        $this->auth()->postJson(
+            "/api/library/users/{$this->userId}/phrases",
+            [
+                'category_id' => $catId,
+                'translations' => [
+                    ['language_id' => $en, 'text' => 'my phrase'],
+                    ['language_id' => $ru, 'text' => 'моя фраза'],
+                ],
+            ]
+        )->assertCreated();
+
+        $availUrl = "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/availability?category_id={$catId}";
+
+        $this->auth()->getJson($availUrl)->assertOk()->assertJsonPath('data.new', 2);
+
+        $sessionId = $this->auth()->postJson(
+            "/api/learning/users/{$this->userId}/profiles/{$this->profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catId]
+        )->assertCreated()->json('data.id');
+
+        $seen = [];
+
+        while (true) {
+            $card = $this->auth()
+                ->getJson("/api/learning/users/{$this->userId}/sessions/{$sessionId}/next")
+                ->json('data.card');
+
+            if ($card === null) {
+                break;
+            }
+
+            $seen[] = $card['learnable_type'].':'.$card['front_text'];
+
+            $this->auth()->postJson(
+                "/api/learning/users/{$this->userId}/sessions/{$sessionId}/answer",
+                ['learnable_id' => $card['learnable_id'], 'quality' => 5]
+            )->assertOk();
+
+            $this->assertLessThan(10, count($seen));
+        }
+
+        sort($seen);
+        $this->assertSame(['user_entry:myword', 'user_phrase:my phrase'], $seen);
+
+        // Reviewed own words leave the "new" pool.
+        $this->auth()->getJson($availUrl)->assertOk()->assertJsonPath('data.new', 0);
     }
 
     public function test_guest_cannot_study(): void

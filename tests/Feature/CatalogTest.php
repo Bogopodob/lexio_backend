@@ -126,6 +126,81 @@ class CatalogTest extends TestCase
             ->assertJsonPath('message', 'Запись не найдена');
     }
 
+    private function registerUser(string $email): array
+    {
+        $registered = $this->postJson('/api/register', [
+            'email' => $email,
+            'password' => 'secret123',
+        ])->json('data');
+
+        return ['id' => $registered['user']['id'], 'token' => $registered['token']];
+    }
+
+    public function test_user_category_crud_and_visibility(): void
+    {
+        $anna = $this->registerUser('cat-anna@example.com');
+        $boris = $this->registerUser('cat-boris@example.com');
+
+        // Guest cannot create.
+        $this->postJson('/api/catalog/categories', ['name' => 'Моё'])
+            ->assertUnauthorized();
+
+        $created = $this->withToken($anna['token'])->postJson('/api/catalog/categories', [
+            'name' => 'Мои глаголы',
+            'icon' => '📚',
+        ]);
+
+        $created->assertCreated()
+            ->assertJsonPath('data.slug', 'moi-glagoly')
+            ->assertJsonPath('data.user_id', $anna['id']);
+
+        $catId = $created->json('data.id');
+
+        // Same name twice → unique slug, both created.
+        $again = $this->withToken($anna['token'])->postJson('/api/catalog/categories', [
+            'name' => 'Мои глаголы',
+        ]);
+        $again->assertCreated();
+        $this->assertNotSame($catId, $again->json('data.id'));
+        $this->assertNotSame('moi-glagoly', $again->json('data.slug'));
+
+        // Boris cannot touch Anna's category.
+        $this->withToken($boris['token'])->patchJson("/api/catalog/categories/{$catId}", [
+            'name' => 'Чужое',
+        ])->assertForbidden();
+        $this->withToken($boris['token'])->deleteJson("/api/catalog/categories/{$catId}")
+            ->assertForbidden();
+
+        // Anna renames her own.
+        $this->withToken($anna['token'])->patchJson("/api/catalog/categories/{$catId}", [
+            'name' => 'Мои глаголы 2',
+        ])->assertOk()->assertJsonPath('data.name', 'Мои глаголы 2');
+
+        // Public list hides user categories.
+        $public = $this->getJson('/api/catalog/categories?type=theme')->json('data');
+        $this->assertNotContains($catId, array_column($public, 'id'));
+
+        // Words survive category deletion, pivots do not.
+        \Illuminate\Support\Facades\DB::table('entry_category')->insert([
+            'entry_id' => $this->entryId,
+            'category_id' => $catId,
+        ]);
+
+        $this->withToken($anna['token'])->deleteJson("/api/catalog/categories/{$catId}")
+            ->assertOk();
+
+        $this->assertNull(
+            \Illuminate\Support\Facades\DB::table('categories')->where('id', $catId)->first()
+        );
+        $this->assertNotNull(
+            \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Entry::query()->find($this->entryId)
+        );
+        $this->assertSame(
+            0,
+            \Illuminate\Support\Facades\DB::table('entry_category')->where('category_id', $catId)->count()
+        );
+    }
+
     public function test_lists_languages(): void
     {
         $result = app(ListLanguagesUseCase::class)->handle(new ListLanguagesCommand);

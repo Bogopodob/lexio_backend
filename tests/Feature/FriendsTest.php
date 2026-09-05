@@ -25,10 +25,18 @@ class FriendsTest extends TestCase
         ];
     }
 
+    private function grant(string ...$emails): void
+    {
+        foreach ($emails as $email) {
+            $this->artisan('user:grant-premium', ['email' => $email])->assertSuccessful();
+        }
+    }
+
     public function test_friend_request_flow(): void
     {
         $anna = $this->register('anna@example.com', 'Анна');
         $boris = $this->register('boris@example.com', 'Борис');
+        $this->grant('anna@example.com');
 
         // Guest cannot list friends.
         $this->getJson("/api/users/{$anna['id']}/friends")->assertUnauthorized();
@@ -94,6 +102,7 @@ class FriendsTest extends TestCase
     {
         $anna = $this->register('anna@example.com', 'Анна');
         $boris = $this->register('boris@example.com', 'Борис');
+        $this->grant('anna@example.com', 'boris@example.com');
 
         $this->withToken($anna['token'])->postJson(
             "/api/users/{$anna['id']}/friends/requests",
@@ -139,10 +148,34 @@ class FriendsTest extends TestCase
         )->assertOk()->assertJsonCount(0, 'data');
     }
 
+    public function test_friend_requests_and_leaderboard_require_premium(): void
+    {
+        $anna = $this->register('anna@example.com', 'Анна');
+
+        $this->withToken($anna['token'])->postJson(
+            "/api/users/{$anna['id']}/friends/requests",
+            ['email' => 'boris@example.com']
+        )->assertForbidden()->assertJsonPath('message', 'Premium subscription required');
+
+        $this->withToken($anna['token'])
+            ->getJson("/api/users/{$anna['id']}/friends/leaderboard")
+            ->assertForbidden();
+
+        $this->grant('anna@example.com');
+
+        $board = $this->withToken($anna['token'])
+            ->getJson("/api/users/{$anna['id']}/friends/leaderboard");
+
+        $board->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.is_self', true)
+            ->assertJsonPath('data.0.user_id', $anna['id']);
+    }
+
     public function test_decline_request(): void
     {
         $anna = $this->register('anna@example.com', 'Анна');
         $boris = $this->register('boris@example.com', 'Борис');
+        $this->grant('anna@example.com');
 
         $requestId = $this->withToken($anna['token'])->postJson(
             "/api/users/{$anna['id']}/friends/requests",

@@ -5,6 +5,7 @@ namespace App\Modules\User\Providers;
 use App\Modules\User\Domain\Ports\FriendshipRepositoryInterface;
 use App\Modules\User\Domain\Ports\UserAccountRepositoryInterface;
 use App\Modules\User\Domain\Ports\UserProfileRepositoryInterface;
+use App\Modules\User\Infrastructure\Console\Commands\GrantPremiumCommand;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\EloquentFriendshipRepository;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\EloquentUserAccountRepository;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\EloquentUserProfileRepository;
@@ -27,5 +28,7 @@ final class UserProvider extends ServiceProvider
         Route::middleware('api')
             ->prefix('api')
             ->group(app_path('Modules/User/routes/User.php'));
+
+        $this->commands([GrantPremiumCommand::class]);
     }
 }
