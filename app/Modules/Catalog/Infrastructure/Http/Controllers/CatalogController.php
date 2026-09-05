@@ -7,6 +7,7 @@ use App\Modules\Catalog\Infrastructure\Http\Takes\GetEntryTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\ListCategoriesTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\ListLanguagesTake;
 use App\Modules\Catalog\Infrastructure\Http\Takes\SearchEntriesTake;
+use App\Modules\Catalog\Infrastructure\Http\Takes\WordOfDayTake;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -18,6 +19,7 @@ final class CatalogController extends Controller
         private readonly ListCategoriesTake $listCategoriesTake,
         private readonly SearchEntriesTake $searchEntriesTake,
         private readonly GetEntryTake $getEntryTake,
+        private readonly WordOfDayTake $wordOfDayTake,
     ) {}
 
     public function languages(): JsonResponse
@@ -38,5 +40,10 @@ final class CatalogController extends Controller
     public function show(string $entryId): JsonResponse
     {
         return $this->getEntryTake->handle($entryId);
+    }
+
+    public function wordOfDay(Request $request): JsonResponse
+    {
+        return $this->wordOfDayTake->handle($request);
     }
 }

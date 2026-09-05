@@ -24,6 +24,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language as L
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Phrase as PhraseModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\PhraseTranslation as PhraseTranslationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\WordForm as WordFormModel;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class EloquentCatalogRepository implements CatalogRepositoryInterface
@@ -112,6 +113,28 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             matchedText: $r->text,
             languageId: $languageId,
         ))->all();
+    }
+
+    public function pickDailyEntryId(string $date): ?string
+    {
+        try {
+            $dayOfYear = Carbon::parse($date)->dayOfYear;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $count = EntryModel::query()->count();
+
+        if ($count === 0) {
+            return null;
+        }
+
+        $id = EntryModel::query()
+            ->orderBy('id')
+            ->offset($dayOfYear % $count)
+            ->value('id');
+
+        return $id ? (string) $id : null;
     }
 
     public function getEntryDetails(string $entryId): ?EntryDetails

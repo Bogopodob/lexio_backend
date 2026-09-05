@@ -57,6 +57,23 @@ class CatalogTest extends TestCase
         }
     }
 
+    public function test_word_of_day_is_deterministic(): void
+    {
+        $first = $this->getJson('/api/catalog/word-of-day?date=2026-09-05');
+
+        $first->assertOk()
+            ->assertJsonPath('data.date', '2026-09-05')
+            ->assertJsonPath('data.word', 'peace')
+            ->assertJsonPath('data.translation', 'мир');
+
+        // Same date → same word.
+        $this->getJson('/api/catalog/word-of-day?date=2026-09-05')
+            ->assertOk()
+            ->assertJsonPath('data.word', 'peace');
+
+        $this->getJson('/api/catalog/word-of-day?date=not-a-date')->assertStatus(422);
+    }
+
     public function test_lists_languages(): void
     {
         $result = app(ListLanguagesUseCase::class)->handle(new ListLanguagesCommand);

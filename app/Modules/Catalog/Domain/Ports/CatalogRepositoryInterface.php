@@ -25,4 +25,9 @@ interface CatalogRepositoryInterface
     public function searchEntries(string $languageId, string $query, ?string $level = null, int $limit = 20): array;
 
     public function getEntryDetails(string $entryId): ?EntryDetails;
+
+    /**
+     * Deterministic entry id for a calendar date (day of year modulo count).
+     */
+    public function pickDailyEntryId(string $date): ?string;
 }
