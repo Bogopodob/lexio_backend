@@ -13,5 +13,6 @@ final readonly class UserPhrase
         public ?string $categoryId,
         public string $phraseType,
         public array $translations = [],
+        public ?string $imagePath = null,
     ) {}
 }

@@ -16,6 +16,6 @@ final readonly class ListUserEntriesUseCase
      */
     public function handle(ListUserEntriesCommand $command): array
     {
-        return $this->library->listEntries($command->userId, $command->languageId);
+        return $this->library->listEntries($command->userId, $command->languageId, $command->categoryId);
     }
 }

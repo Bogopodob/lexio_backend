@@ -32,6 +32,7 @@ final class UserPhrase extends Model
         'id',
         'user_id',
         'category_id',
+        'image_path',
         'phrase_type',
         'created_at',
         'updated_at',

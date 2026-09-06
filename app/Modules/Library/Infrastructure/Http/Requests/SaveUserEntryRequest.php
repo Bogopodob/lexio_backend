@@ -17,6 +17,7 @@ final class SaveUserEntryRequest extends AppFormRequest
             'translations.*.transcription' => ['nullable', 'string', 'max:255'],
             'translations.*.part_of_speech' => ['nullable', 'string', 'max:50'],
             'translations.*.notes' => ['nullable', 'string', 'max:2000'],
+            'translations.*.audio_path' => ['nullable', 'string', 'max:2048'],
         ];
     }
 }

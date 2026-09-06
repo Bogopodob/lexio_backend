@@ -10,5 +10,6 @@ final readonly class UserPhraseTranslation
         public string $text,
         public ?string $transcription,
         public ?string $notes,
+        public ?string $audioPath = null,
     ) {}
 }

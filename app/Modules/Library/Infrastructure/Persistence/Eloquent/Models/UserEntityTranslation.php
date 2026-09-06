@@ -39,6 +39,7 @@ final class UserEntityTranslation extends Model
         'transcription',
         'part_of_speech',
         'notes',
+        'audio_path',
         'created_at',
         'updated_at',
     ];

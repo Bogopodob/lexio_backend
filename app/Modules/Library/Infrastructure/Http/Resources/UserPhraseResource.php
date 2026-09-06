@@ -17,6 +17,7 @@ final class UserPhraseResource extends JsonResource
         return [
             'id' => $this->phrase->id,
             'category_id' => $this->phrase->categoryId,
+            'image_path' => $this->phrase->imagePath,
             'phrase_type' => $this->phrase->phraseType,
             'translations' => array_map(fn ($t) => [
                 'id' => $t->id,
@@ -24,6 +25,7 @@ final class UserPhraseResource extends JsonResource
                 'text' => $t->text,
                 'transcription' => $t->transcription,
                 'notes' => $t->notes,
+                'audio_path' => $t->audioPath,
             ], $this->phrase->translations),
         ];
     }

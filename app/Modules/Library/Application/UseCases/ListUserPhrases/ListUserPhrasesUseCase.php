@@ -16,6 +16,6 @@ final readonly class ListUserPhrasesUseCase
      */
     public function handle(ListUserPhrasesCommand $command): array
     {
-        return $this->library->listPhrases($command->userId, $command->languageId);
+        return $this->library->listPhrases($command->userId, $command->languageId, $command->categoryId);
     }
 }

@@ -14,5 +14,6 @@ final readonly class SaveUserEntryCommand
         public ?string $categoryId = null,
         public ?string $imagePath = null,
         public array $translations = [],
+        public ?string $entryId = null,
     ) {}
 }

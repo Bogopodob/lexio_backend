@@ -25,6 +25,7 @@ final class UserEntryResource extends JsonResource
                 'transcription' => $t->transcription,
                 'part_of_speech' => $t->partOfSpeech,
                 'notes' => $t->notes,
+                'audio_path' => $t->audioPath,
             ], $this->entry->translations),
         ];
     }

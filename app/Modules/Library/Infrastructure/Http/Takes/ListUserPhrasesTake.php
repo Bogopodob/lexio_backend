@@ -20,7 +20,8 @@ final readonly class ListUserPhrasesTake
         $result = $this->useCase->handle(
             new ListUserPhrasesCommand(
                 userId: $userId,
-                languageId: $request->query('language_id'),
+                languageId: $request->query('language_id') ?: null,
+                categoryId: $request->query('category_id') ?: null,
             )
         );
 

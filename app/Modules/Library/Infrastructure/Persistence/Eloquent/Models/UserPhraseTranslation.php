@@ -37,6 +37,7 @@ final class UserPhraseTranslation extends Model
         'text',
         'transcription',
         'notes',
+        'audio_path',
         'created_at',
         'updated_at',
     ];

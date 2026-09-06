@@ -7,5 +7,6 @@ final readonly class ListUserPhrasesCommand
     public function __construct(
         public string $userId,
         public ?string $languageId = null,
+        public ?string $categoryId = null,
     ) {}
 }

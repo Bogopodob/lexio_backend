@@ -14,5 +14,7 @@ final readonly class SaveUserPhraseCommand
         public ?string $categoryId = null,
         public string $phraseType = 'phrase',
         public array $translations = [],
+        public ?string $imagePath = null,
+        public ?string $phraseId = null,
     ) {}
 }

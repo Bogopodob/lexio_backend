@@ -11,14 +11,36 @@ final readonly class SaveUserPhraseUseCase
         private LibraryRepositoryInterface $library,
     ) {}
 
-    public function handle(SaveUserPhraseCommand $command): UserPhrase
+    public function show(string $userId, string $phraseId): ?UserPhrase
     {
+        return $this->library->getPhrase($userId, $phraseId);
+    }
+
+    public function destroy(string $userId, string $phraseId): bool
+    {
+        return $this->library->deletePhrase($userId, $phraseId);
+    }
+
+    public function handle(SaveUserPhraseCommand $command): ?UserPhrase
+    {
+        $id = '';
+
+        if ($command->phraseId !== null) {
+            // Update path: foreign phrases are untouchable.
+            if ($this->library->getPhrase($command->userId, $command->phraseId) === null) {
+                return null;
+            }
+
+            $id = $command->phraseId;
+        }
+
         return $this->library->savePhrase(new UserPhrase(
-            id: '',
+            id: $id,
             userId: $command->userId,
             categoryId: $command->categoryId,
             phraseType: $command->phraseType,
             translations: $command->translations,
+            imagePath: $command->imagePath,
         ));
     }
 }

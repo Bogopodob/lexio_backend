@@ -114,4 +114,189 @@ class LibraryTest extends TestCase
         $this->assertSame('idiom', $phrase->phraseType);
         $this->assertCount(1, $phrase->translations);
     }
+
+    private function authUser(string $email): array
+    {
+        $registered = $this->postJson('/api/register', [
+            'email' => $email,
+            'password' => 'secret123',
+        ])->json('data');
+
+        return ['id' => $registered['user']['id'], 'token' => $registered['token']];
+    }
+
+    private function uploadFile(string $content, string $name, ?string $mime = null): \Illuminate\Http\UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'lib');
+
+        if ($path === false) {
+            $this->fail('No temp file');
+        }
+
+        file_put_contents($path, $content);
+
+        return new \Illuminate\Http\UploadedFile($path, $name, $mime, null, true);
+    }
+
+    public function test_entry_crud_with_audio_and_category_filter(): void
+    {
+        $user = $this->authUser('crud@example.com');
+
+        $catA = (string) \Ramsey\Uuid\Uuid::uuid4();
+        $catB = (string) \Ramsey\Uuid\Uuid::uuid4();
+
+        foreach ([$catA => 'mine-a', $catB => 'mine-b'] as $id => $slug) {
+            \Illuminate\Support\Facades\DB::table('categories')->insert([
+                'id' => $id,
+                'slug' => $slug,
+                'type' => 'theme',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $created = $this->withToken($user['token'])->postJson("/api/library/users/{$user['id']}/entries", [
+            'category_id' => $catA,
+            'translations' => [
+                ['language_id' => $this->en, 'text' => 'sun', 'transcription' => 'sʌn', 'audio_path' => '/api/library/media/1'],
+                ['language_id' => $this->ru, 'text' => 'солнце'],
+            ],
+        ]);
+
+        $created->assertCreated();
+        $entryId = $created->json('data.id');
+        $this->assertSame('/api/library/media/1', $created->json('data.translations.0.audio_path'));
+
+        // Category filter.
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/entries?category_id={$catB}")
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/entries?category_id={$catA}")
+            ->assertOk()->assertJsonCount(1, 'data');
+
+        // Show + update (translations replaced wholesale).
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/entries/{$entryId}")
+            ->assertOk()->assertJsonPath('data.translations.0.text', 'sun');
+
+        $this->withToken($user['token'])->putJson("/api/library/users/{$user['id']}/entries/{$entryId}", [
+            'category_id' => $catB,
+            'translations' => [
+                ['language_id' => $this->en, 'text' => 'sunshine'],
+            ],
+        ])->assertOk()->assertJsonPath('data.translations.0.text', 'sunshine');
+
+        // Foreign user sees nothing.
+        $other = $this->authUser('other@example.com');
+        $this->withToken($other['token'])
+            ->getJson("/api/library/users/{$user['id']}/entries/{$entryId}")
+            ->assertForbidden();
+        $this->withToken($other['token'])->putJson(
+            "/api/library/users/{$user['id']}/entries/{$entryId}",
+            ['translations' => [['language_id' => $this->en, 'text' => 'x']]]
+        )->assertForbidden();
+        $this->withToken($other['token'])
+            ->deleteJson("/api/library/users/{$user['id']}/entries/{$entryId}")
+            ->assertForbidden();
+
+        // Delete drops the entry.
+        $this->withToken($user['token'])
+            ->deleteJson("/api/library/users/{$user['id']}/entries/{$entryId}")
+            ->assertOk();
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/entries/{$entryId}")
+            ->assertNotFound();
+    }
+
+    public function test_phrase_image_round_trip(): void
+    {
+        $user = $this->authUser('img@example.com');
+
+        $created = $this->withToken($user['token'])->postJson("/api/library/users/{$user['id']}/phrases", [
+            'image_path' => '/api/library/media/9',
+            'translations' => [
+                ['language_id' => $this->en, 'text' => 'Good morning'],
+            ],
+        ]);
+
+        $created->assertCreated()->assertJsonPath('data.image_path', '/api/library/media/9');
+    }
+
+    public function test_media_upload_and_stream(): void
+    {
+        $user = $this->authUser('media@example.com');
+
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        $ok = $this->withToken($user['token'])->post(
+            "/api/library/users/{$user['id']}/media",
+            ['kind' => 'image', 'file' => $this->uploadFile($png, 'pic.png', 'image/png')],
+        );
+
+        $ok->assertCreated();
+        $mediaId = $ok->json('data.id');
+        $this->assertSame('image/png', $ok->json('data.mime'));
+
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/media/{$mediaId}")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        // Script disguised as audio is rejected, nothing stored.
+        $bad = $this->withToken($user['token'])->post(
+            "/api/library/users/{$user['id']}/media",
+            ['kind' => 'audio', 'file' => $this->uploadFile('<?php echo 1;', 'evil.mp3', 'audio/mpeg')],
+        );
+
+        $bad->assertStatus(422);
+
+        // Foreign user cannot stream.
+        $other = $this->authUser('media-other@example.com');
+        $this->withToken($other['token'])
+            ->getJson("/api/library/users/{$user['id']}/media/{$mediaId}")
+            ->assertForbidden();
+
+        // Missing media is 404.
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/media/00000000-0000-0000-0000-000000000000")
+            ->assertNotFound();
+    }
+
+    public function test_speak_and_transcribe(): void
+    {
+        $user = $this->authUser('tts@example.com');
+
+        $spoken = $this->withToken($user['token'])->postJson(
+            "/api/library/users/{$user['id']}/speak",
+            ['text' => 'hello', 'lang' => 'en'],
+        );
+
+        $spoken->assertCreated();
+        $this->assertNotEmpty($spoken->json('data.media_id'));
+        $this->assertNotEmpty($spoken->json('data.transcription'));
+
+        $mediaId = $spoken->json('data.media_id');
+
+        $this->withToken($user['token'])
+            ->getJson("/api/library/users/{$user['id']}/media/{$mediaId}")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'audio/wav');
+
+        // Same text reuses the cached file.
+        $again = $this->withToken($user['token'])->postJson(
+            "/api/library/users/{$user['id']}/speak",
+            ['text' => 'hello', 'lang' => 'en'],
+        );
+
+        $again->assertCreated()->assertJsonPath('data.media_id', $mediaId);
+
+        $tr = $this->withToken($user['token'])->postJson('/api/library/transcribe', [
+            'text' => 'world', 'lang' => 'en',
+        ]);
+
+        $tr->assertOk();
+        $this->assertNotEmpty($tr->json('data.transcription'));
+    }
 }

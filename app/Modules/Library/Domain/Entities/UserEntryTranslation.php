@@ -11,5 +11,6 @@ final readonly class UserEntryTranslation
         public ?string $transcription,
         public ?string $partOfSpeech,
         public ?string $notes,
+        public ?string $audioPath = null,
     ) {}
 }
