@@ -357,6 +357,26 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             return [];
         }
 
+        // Own words plus words from categories shared with the user.
+        // Outside a category only own words qualify (no leaking).
+        $owners = [(string) $userId];
+
+        if ($categoryId !== null) {
+            $owner = DB::table('categories')->where('id', $categoryId)->value('user_id');
+
+            if ($owner !== null && (string) $owner !== (string) $userId) {
+                $shared = DB::table('library_shares')
+                    ->where('category_id', $categoryId)
+                    ->where('owner_user_id', $owner)
+                    ->where('friend_user_id', $userId)
+                    ->exists();
+
+                if ($shared) {
+                    $owners[] = (string) $owner;
+                }
+            }
+        }
+
         $deck = [];
 
         foreach (['user_entry' => 'user_entries', 'user_phrase' => 'user_phrases'] as $type => $table) {
@@ -366,7 +386,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
                         ->where('user_progresses.profile_id', '=', $profileId)
                         ->where('user_progresses.learnable_type', '=', $type);
                 })
-                ->where("{$table}.user_id", $userId)
+                ->whereIn("{$table}.user_id", $owners)
                 ->whereNull('user_progresses.id')
                 ->when($categoryId !== null, fn ($q) => $q->where("{$table}.category_id", $categoryId))
                 ->orderBy("{$table}.created_at")

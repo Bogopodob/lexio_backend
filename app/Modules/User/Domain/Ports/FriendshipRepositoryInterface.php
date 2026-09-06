@@ -40,6 +40,8 @@ interface FriendshipRepositoryInterface
      */
     public function leaderboard(string $userId): array;
 
+    public function areFriends(string $userA, string $userB): bool;
+
     /**
      * @return list<array{user_id: string, name: ?string, email: string}>
      */

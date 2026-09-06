@@ -4,12 +4,15 @@ namespace App\Modules\Library\Infrastructure\Http\Controllers;
 
 use App\Modules\Library\Infrastructure\Http\Requests\SaveUserEntryRequest;
 use App\Modules\Library\Infrastructure\Http\Requests\SaveUserPhraseRequest;
+use App\Modules\Library\Infrastructure\Http\Requests\ShareCategoryRequest;
 use App\Modules\Library\Infrastructure\Http\Requests\SpeakTextRequest;
 use App\Modules\Library\Infrastructure\Http\Requests\UploadMediaRequest;
 use App\Modules\Library\Infrastructure\Http\Takes\ListUserEntriesTake;
 use App\Modules\Library\Infrastructure\Http\Takes\ListUserPhrasesTake;
+use App\Modules\Library\Infrastructure\Http\Takes\ReadSharedTake;
 use App\Modules\Library\Infrastructure\Http\Takes\SaveUserEntryTake;
 use App\Modules\Library\Infrastructure\Http\Takes\SaveUserPhraseTake;
+use App\Modules\Library\Infrastructure\Http\Takes\ShareCategoryTake;
 use App\Modules\Library\Infrastructure\Http\Takes\SpeakTextTake;
 use App\Modules\Library\Infrastructure\Http\Takes\StreamMediaTake;
 use App\Modules\Library\Infrastructure\Http\Takes\UploadMediaTake;
@@ -28,6 +31,8 @@ final class LibraryController extends Controller
         private readonly UploadMediaTake $uploadMediaTake,
         private readonly StreamMediaTake $streamMediaTake,
         private readonly SpeakTextTake $speakTextTake,
+        private readonly ShareCategoryTake $shareCategoryTake,
+        private readonly ReadSharedTake $readSharedTake,
     ) {}
 
     public function storeEntry(string $userId, SaveUserEntryRequest $request): JsonResponse
@@ -98,5 +103,45 @@ final class LibraryController extends Controller
     public function transcribe(SpeakTextRequest $request): JsonResponse
     {
         return $this->speakTextTake->transcribe($request);
+    }
+
+    public function grantShare(string $userId, ShareCategoryRequest $request): JsonResponse
+    {
+        return $this->shareCategoryTake->grant($userId, $request);
+    }
+
+    public function listShares(string $userId, Request $request): JsonResponse
+    {
+        return $this->shareCategoryTake->index($userId, $request);
+    }
+
+    public function revokeShare(string $userId, string $shareId): JsonResponse
+    {
+        return $this->shareCategoryTake->destroy($userId, $shareId);
+    }
+
+    public function sharedWithMe(string $userId, Request $request): JsonResponse
+    {
+        return $this->shareCategoryTake->shared($userId, $request);
+    }
+
+    public function sharedEntries(string $userId, Request $request): JsonResponse
+    {
+        return $this->readSharedTake->entries($userId, $request);
+    }
+
+    public function sharedEntry(string $userId, string $entryId, Request $request): JsonResponse
+    {
+        return $this->readSharedTake->entry($userId, $entryId, $request);
+    }
+
+    public function sharedPhrases(string $userId, Request $request): JsonResponse
+    {
+        return $this->readSharedTake->phrases($userId, $request);
+    }
+
+    public function sharedPhrase(string $userId, string $phraseId, Request $request): JsonResponse
+    {
+        return $this->readSharedTake->phrase($userId, $phraseId, $request);
     }
 }

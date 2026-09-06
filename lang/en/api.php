@@ -54,6 +54,9 @@ return [
         'not_found' => 'Media not found.',
         'tts_failed' => 'Could not synthesize audio.',
     ],
+    'share' => [
+        'forbidden' => 'No access to share this.',
+    ],
     'auth' => [
         'unauthenticated' => 'Unauthenticated',
         'no_token' => 'Missing bearer token',

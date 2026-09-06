@@ -26,8 +26,8 @@ final readonly class SaveUserEntryUseCase
         $id = '';
 
         if ($command->entryId !== null) {
-            // Update path: foreign entries are untouchable.
-            if ($this->library->getEntry($command->userId, $command->entryId) === null) {
+            // Update path: only the owner's own entries (shared ones are read-only).
+            if (! $this->library->ownsEntry($command->userId, $command->entryId)) {
                 return null;
             }
 

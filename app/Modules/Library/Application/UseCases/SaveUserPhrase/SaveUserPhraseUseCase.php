@@ -26,8 +26,8 @@ final readonly class SaveUserPhraseUseCase
         $id = '';
 
         if ($command->phraseId !== null) {
-            // Update path: foreign phrases are untouchable.
-            if ($this->library->getPhrase($command->userId, $command->phraseId) === null) {
+            // Update path: only the owner's own phrases (shared ones are read-only).
+            if (! $this->library->ownsPhrase($command->userId, $command->phraseId)) {
                 return null;
             }
 

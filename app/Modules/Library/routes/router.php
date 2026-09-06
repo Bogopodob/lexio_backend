@@ -18,4 +18,12 @@ Route::prefix('library')->middleware(['jwt.auth', 'user.owner'])->group(function
     Route::get('/users/{userId}/media/{mediaId}', [LibraryController::class, 'streamMedia']);
     Route::post('/users/{userId}/speak', [LibraryController::class, 'speak']);
     Route::post('/transcribe', [LibraryController::class, 'transcribe']);
+    Route::post('/users/{userId}/shares', [LibraryController::class, 'grantShare']);
+    Route::get('/users/{userId}/shares', [LibraryController::class, 'listShares']);
+    Route::delete('/users/{userId}/shares/{shareId}', [LibraryController::class, 'revokeShare']);
+    Route::get('/users/{userId}/shared-with-me', [LibraryController::class, 'sharedWithMe']);
+    Route::get('/users/{userId}/shared/entries', [LibraryController::class, 'sharedEntries']);
+    Route::get('/users/{userId}/shared/entries/{entryId}', [LibraryController::class, 'sharedEntry']);
+    Route::get('/users/{userId}/shared/phrases', [LibraryController::class, 'sharedPhrases']);
+    Route::get('/users/{userId}/shared/phrases/{phraseId}', [LibraryController::class, 'sharedPhrase']);
 });

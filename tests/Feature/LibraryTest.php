@@ -138,6 +138,170 @@ class LibraryTest extends TestCase
         return new \Illuminate\Http\UploadedFile($path, $name, $mime, null, true);
     }
 
+    public function test_friend_learns_shared_words(): void
+    {
+        $anna = $this->authUser('deck-anna@example.com');
+        $boris = $this->authUser('deck-boris@example.com');
+
+        $en = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'en')->value('id');
+        $ru = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'ru')->value('id');
+
+        $catId = $this->withToken($anna['token'])->postJson('/api/catalog/categories', [
+            'name' => 'Shared',
+        ])->assertCreated()->json('data.id');
+
+        $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/entries", [
+            'category_id' => $catId,
+            'translations' => [
+                ['language_id' => $en, 'text' => 'sharedword'],
+                ['language_id' => $ru, 'text' => 'общееслово'],
+            ],
+        ])->assertCreated();
+
+        $profileId = app(\App\Modules\Learning\Application\UseCases\StartLearning\StartLearningUseCase::class)->handle(
+            new \App\Modules\Learning\Application\UseCases\StartLearning\StartLearningCommand(
+                $boris['id'], (string) $en, (string) $ru
+            )
+        )->profile->id;
+
+        // No access yet: nothing to learn.
+        $this->withToken($boris['token'])->postJson(
+            "/api/learning/users/{$boris['id']}/profiles/{$profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catId]
+        )->assertStatus(422);
+
+        $this->befriend($anna['id'], $boris['id']);
+
+        $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/shares", [
+            'category_id' => $catId,
+            'friend_user_id' => $boris['id'],
+        ])->assertCreated();
+
+        $sessionId = $this->withToken($boris['token'])->postJson(
+            "/api/learning/users/{$boris['id']}/profiles/{$profileId}/sessions",
+            ['source' => 'new', 'limit' => 5, 'category_id' => $catId]
+        )->assertCreated()->json('data.id');
+
+        $card = $this->withToken($boris['token'])
+            ->getJson("/api/learning/users/{$boris['id']}/sessions/{$sessionId}/next")
+            ->json('data.card');
+
+        $this->assertSame('sharedword', $card['front_text']);
+
+        $this->withToken($boris['token'])->postJson(
+            "/api/learning/users/{$boris['id']}/sessions/{$sessionId}/answer",
+            ['learnable_id' => $card['learnable_id'], 'quality' => 5]
+        )->assertOk()->assertJsonPath('data.finished', true);
+    }
+
+    private function befriend(string $a, string $b): void
+    {
+        \Illuminate\Support\Facades\DB::table('friendships')->insert([
+            'id' => (string) \Ramsey\Uuid\Uuid::uuid4(),
+            'requester_id' => $a,
+            'addressee_id' => $b,
+            'status' => 'accepted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function test_shared_category_opens_words_to_friend_only(): void
+    {
+        $anna = $this->authUser('share-anna@example.com');
+        $boris = $this->authUser('share-boris@example.com');
+        $stranger = $this->authUser('share-stranger@example.com');
+
+        $en = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'en')->value('id');
+        $ru = \App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language::query()->where('code', 'ru')->value('id');
+
+        $catId = $this->withToken($anna['token'])->postJson('/api/catalog/categories', [
+            'name' => 'Наше',
+        ])->assertCreated()->json('data.id');
+
+        $entryId = $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/entries", [
+            'category_id' => $catId,
+            'translations' => [
+                ['language_id' => $en, 'text' => 'secretword'],
+                ['language_id' => $ru, 'text' => 'секретслово'],
+            ],
+        ])->assertCreated()->json('data.id');
+
+        // Stranger sees nothing (cross-user URLs are blocked by ownership,
+        // shared URLs answer 404).
+        $this->withToken($stranger['token'])
+            ->getJson("/api/library/users/{$anna['id']}/entries/{$entryId}")
+            ->assertForbidden();
+        $this->withToken($stranger['token'])
+            ->getJson("/api/library/users/{$stranger['id']}/shared/entries?category_id={$catId}")
+            ->assertNotFound();
+
+        // Sharing with a non-friend is rejected.
+        $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/shares", [
+            'category_id' => $catId,
+            'friend_user_id' => $boris['id'],
+        ])->assertForbidden();
+
+        $this->befriend($anna['id'], $boris['id']);
+
+        // Sharing a system category is rejected.
+        $sysCat = (string) \Ramsey\Uuid\Uuid::uuid4();
+        \Illuminate\Support\Facades\DB::table('categories')->insert([
+            'id' => $sysCat,
+            'slug' => 'sys-cat',
+            'type' => 'theme',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/shares", [
+            'category_id' => $sysCat,
+            'friend_user_id' => $boris['id'],
+        ])->assertForbidden();
+
+        // Grant access.
+        $shareId = $this->withToken($anna['token'])->postJson("/api/library/users/{$anna['id']}/shares", [
+            'category_id' => $catId,
+            'friend_user_id' => $boris['id'],
+        ])->assertCreated()->json('data.id');
+
+        // Friend reads the word and the list through shared endpoints.
+        $this->withToken($boris['token'])
+            ->getJson("/api/library/users/{$boris['id']}/shared/entries/{$entryId}?category_id={$catId}")
+            ->assertOk()->assertJsonPath('data.translations.0.text', 'secretword');
+        $this->withToken($boris['token'])
+            ->getJson("/api/library/users/{$boris['id']}/shared/entries?category_id={$catId}")
+            ->assertOk()->assertJsonCount(1, 'data');
+
+        // Friend cannot modify or delete.
+        $this->withToken($boris['token'])->putJson(
+            "/api/library/users/{$anna['id']}/entries/{$entryId}",
+            ['translations' => [['language_id' => $en, 'text' => 'hacked']]]
+        )->assertForbidden();
+        $this->withToken($boris['token'])
+            ->deleteJson("/api/library/users/{$anna['id']}/entries/{$entryId}")
+            ->assertForbidden();
+
+        // Shared-with-me listing.
+        $shared = $this->withToken($boris['token'])
+            ->getJson("/api/library/users/{$boris['id']}/shared-with-me");
+        $shared->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $catId)
+            ->assertJsonPath('data.0.words_count', 1);
+
+        // Owner sees the grant.
+        $this->withToken($anna['token'])
+            ->getJson("/api/library/users/{$anna['id']}/shares?category_id={$catId}")
+            ->assertOk()->assertJsonCount(1, 'data');
+
+        // Revoke closes access again.
+        $this->withToken($anna['token'])
+            ->deleteJson("/api/library/users/{$anna['id']}/shares/{$shareId}")
+            ->assertOk();
+        $this->withToken($boris['token'])
+            ->getJson("/api/library/users/{$boris['id']}/shared/entries/{$entryId}?category_id={$catId}")
+            ->assertNotFound();
+    }
+
     public function test_entry_crud_with_audio_and_category_filter(): void
     {
         $user = $this->authUser('crud@example.com');

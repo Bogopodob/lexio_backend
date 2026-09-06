@@ -3,6 +3,7 @@
 namespace App\Modules\Library\Infrastructure\Persistence\Eloquent;
 
 use App\Modules\Library\Domain\Entities\LibraryMedia;
+use App\Modules\Library\Domain\Entities\LibraryShare;
 use App\Modules\Library\Domain\Entities\UserEntry;
 use App\Modules\Library\Domain\Entities\UserEntryTranslation;
 use App\Modules\Library\Domain\Entities\UserPhrase;
@@ -49,11 +50,193 @@ final class EloquentLibraryRepository implements LibraryRepositoryInterface
         });
     }
 
+    /**
+     * Own rows plus rows in categories shared with the user.
+     */
+    private function visibleTo(string $table, string $userId): \Closure
+    {
+        return function ($query) use ($table, $userId) {
+            $query->where(function ($q) use ($table, $userId) {
+                $q->where("{$table}.user_id", $userId)
+                    ->orWhereExists(function ($sq) use ($table, $userId) {
+                        $sq->select(DB::raw(1))
+                            ->from('library_shares')
+                            ->whereColumn('library_shares.category_id', "{$table}.category_id")
+                            ->where('library_shares.friend_user_id', $userId)
+                            ->whereColumn('library_shares.owner_user_id', "{$table}.user_id")
+                            ->whereNotNull("{$table}.category_id");
+                    });
+            });
+        };
+    }
+
+    public function canAccessCategory(string $userId, string $categoryId): bool
+    {
+        $owner = DB::table('categories')->where('id', $categoryId)->value('user_id');
+
+        if ($owner === null) {
+            return true;
+        }
+
+        if ((string) $owner === $userId) {
+            return true;
+        }
+
+        return DB::table('library_shares')
+            ->where('category_id', $categoryId)
+            ->where('owner_user_id', $owner)
+            ->where('friend_user_id', $userId)
+            ->exists();
+    }
+
+    public function shareCategory(string $ownerId, string $friendId, string $categoryId): LibraryShare
+    {
+        $row = DB::table('library_shares')->where([
+            'owner_user_id' => $ownerId,
+            'friend_user_id' => $friendId,
+            'category_id' => $categoryId,
+        ])->first();
+
+        if (! $row) {
+            $id = (string) Uuid::uuid4();
+
+            DB::table('library_shares')->insert([
+                'id' => $id,
+                'owner_user_id' => $ownerId,
+                'friend_user_id' => $friendId,
+                'category_id' => $categoryId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $row = DB::table('library_shares')->where('id', $id)->first();
+        }
+
+        return new LibraryShare(
+            (string) $row->id,
+            (string) $row->owner_user_id,
+            (string) $row->friend_user_id,
+            (string) $row->category_id,
+            $this->userName($friendId),
+        );
+    }
+
+    /**
+     * @return list<LibraryShare>
+     */
+    public function sharesOfCategory(string $ownerId, string $categoryId): array
+    {
+        return DB::table('library_shares')
+            ->where('owner_user_id', $ownerId)
+            ->where('category_id', $categoryId)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($row) => new LibraryShare(
+                (string) $row->id,
+                (string) $row->owner_user_id,
+                (string) $row->friend_user_id,
+                (string) $row->category_id,
+                $this->userName((string) $row->friend_user_id),
+            ))
+            ->all();
+    }
+
+    public function revokeShare(string $ownerId, string $shareId): bool
+    {
+        return (bool) DB::table('library_shares')
+            ->where('id', $shareId)
+            ->where('owner_user_id', $ownerId)
+            ->delete();
+    }
+
+    public function sharedWithMe(string $userId, string $locale): array
+    {
+        $rows = DB::table('library_shares')
+            ->join('categories', 'categories.id', '=', 'library_shares.category_id')
+            ->where('library_shares.friend_user_id', $userId)
+            ->orderBy('library_shares.created_at', 'desc')
+            ->get([
+                'categories.id as category_id',
+                'categories.slug as slug',
+                'library_shares.owner_user_id as owner_id',
+            ]);
+
+        $out = [];
+
+        foreach ($rows as $row) {
+            $name = DB::table('translations')
+                ->where('entity_id', $row->category_id)
+                ->where('field', 'name')
+                ->where('locale', $locale)
+                ->value('value')
+                ?? DB::table('translations')
+                    ->where('entity_id', $row->category_id)
+                    ->where('field', 'name')
+                    ->value('value');
+
+            $words = DB::table('user_entries')->where('category_id', $row->category_id)->count()
+                + DB::table('user_phrases')->where('category_id', $row->category_id)->count();
+
+            $out[] = [
+                'id' => (string) $row->category_id,
+                'name' => $name !== null ? (string) $name : (string) $row->slug,
+                'owner_name' => $this->userName((string) $row->owner_id),
+                'words_count' => $words,
+            ];
+        }
+
+        return $out;
+    }
+
+    public function sharedOwner(string $categoryId, string $friendId): ?string
+    {
+        $owner = DB::table('categories')->where('id', $categoryId)->value('user_id');
+
+        if ($owner === null) {
+            return null;
+        }
+
+        if ((string) $owner === $friendId) {
+            return $friendId;
+        }
+
+        $shared = DB::table('library_shares')
+            ->where('category_id', $categoryId)
+            ->where('owner_user_id', $owner)
+            ->where('friend_user_id', $friendId)
+            ->exists();
+
+        return $shared ? (string) $owner : null;
+    }
+
+    private function userName(string $userId): ?string
+    {
+        $name = DB::table('users')->where('id', $userId)->value('name');
+
+        return $name !== null && trim((string) $name) !== '' ? (string) $name : null;
+    }
+
+    public function ownsEntry(string $userId, string $entryId): bool
+    {
+        return UserEntryModel::query()
+            ->where('id', $entryId)
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    public function ownsPhrase(string $userId, string $phraseId): bool
+    {
+        return UserPhraseModel::query()
+            ->where('id', $phraseId)
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
     public function getEntry(string $userId, string $entryId): ?UserEntry
     {
         $model = UserEntryModel::query()
             ->where('id', $entryId)
-            ->where('user_id', $userId)
+            ->where($this->visibleTo('user_entries', $userId))
             ->first();
 
         return $model ? $this->toEntry($model) : null;
@@ -70,8 +253,11 @@ final class EloquentLibraryRepository implements LibraryRepositoryInterface
     public function listEntries(string $userId, ?string $languageId = null, ?string $categoryId = null): array
     {
         $models = UserEntryModel::query()
-            ->where('user_id', $userId)
-            ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId))
+            ->when(
+                $categoryId !== null,
+                fn ($q) => $q->where($this->visibleTo('user_entries', $userId))->where('category_id', $categoryId),
+                fn ($q) => $q->where('user_id', $userId),
+            )
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -125,7 +311,7 @@ final class EloquentLibraryRepository implements LibraryRepositoryInterface
     {
         $model = UserPhraseModel::query()
             ->where('id', $phraseId)
-            ->where('user_id', $userId)
+            ->where($this->visibleTo('user_phrases', $userId))
             ->first();
 
         return $model ? $this->toPhrase($model) : null;
@@ -142,8 +328,11 @@ final class EloquentLibraryRepository implements LibraryRepositoryInterface
     public function listPhrases(string $userId, ?string $languageId = null, ?string $categoryId = null): array
     {
         $models = UserPhraseModel::query()
-            ->where('user_id', $userId)
-            ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId))
+            ->when(
+                $categoryId !== null,
+                fn ($q) => $q->where($this->visibleTo('user_phrases', $userId))->where('category_id', $categoryId),
+                fn ($q) => $q->where('user_id', $userId),
+            )
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -176,12 +365,56 @@ final class EloquentLibraryRepository implements LibraryRepositoryInterface
 
     public function findMedia(string $userId, string $mediaId): ?LibraryMedia
     {
-        $model = LibraryMediaModel::query()
-            ->where('id', $mediaId)
-            ->where('user_id', $userId)
-            ->first();
+        $model = LibraryMediaModel::query()->where('id', $mediaId)->first();
 
-        return $model ? $this->toMedia($model) : null;
+        if (! $model) {
+            return null;
+        }
+
+        if ((string) $model->user_id === $userId) {
+            return $this->toMedia($model);
+        }
+
+        // Shared media: attached to a word in a category shared with the user.
+        $needle = '/media/'.(string) $model->id;
+
+        $shared = DB::table('user_entry_translations')
+            ->join('user_entries', 'user_entries.id', '=', 'user_entry_translations.user_entry_id')
+            ->join('library_shares', 'library_shares.category_id', '=', 'user_entries.category_id')
+            ->where('user_entry_translations.audio_path', 'like', '%'.$needle)
+            ->where('library_shares.owner_user_id', (string) $model->user_id)
+            ->where('library_shares.friend_user_id', $userId)
+            ->exists();
+
+        if (! $shared) {
+            $shared = DB::table('user_entries')
+                ->join('library_shares', 'library_shares.category_id', '=', 'user_entries.category_id')
+                ->where('user_entries.image_path', 'like', '%'.$needle)
+                ->where('library_shares.owner_user_id', (string) $model->user_id)
+                ->where('library_shares.friend_user_id', $userId)
+                ->exists();
+        }
+
+        if (! $shared) {
+            $shared = DB::table('user_phrase_translations')
+                ->join('user_phrases', 'user_phrases.id', '=', 'user_phrase_translations.user_phrase_id')
+                ->join('library_shares', 'library_shares.category_id', '=', 'user_phrases.category_id')
+                ->where('user_phrase_translations.audio_path', 'like', '%'.$needle)
+                ->where('library_shares.owner_user_id', (string) $model->user_id)
+                ->where('library_shares.friend_user_id', $userId)
+                ->exists();
+        }
+
+        if (! $shared) {
+            $shared = DB::table('user_phrases')
+                ->join('library_shares', 'library_shares.category_id', '=', 'user_phrases.category_id')
+                ->where('user_phrases.image_path', 'like', '%'.$needle)
+                ->where('library_shares.owner_user_id', (string) $model->user_id)
+                ->where('library_shares.friend_user_id', $userId)
+                ->exists();
+        }
+
+        return $shared ? $this->toMedia($model) : null;
     }
 
     public function findMediaByPath(string $path): ?LibraryMedia

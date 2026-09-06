@@ -153,6 +153,24 @@ final class EloquentFriendshipRepository implements FriendshipRepositoryInterfac
         return $result;
     }
 
+    public function areFriends(string $userA, string $userB): bool
+    {
+        if ($userA === $userB) {
+            return false;
+        }
+
+        return FriendshipModel::query()
+            ->where('status', 'accepted')
+            ->where(function ($q) use ($userA, $userB) {
+                $q->where(function ($qq) use ($userA, $userB) {
+                    $qq->where('requester_id', $userA)->where('addressee_id', $userB);
+                })->orWhere(function ($qq) use ($userA, $userB) {
+                    $qq->where('requester_id', $userB)->where('addressee_id', $userA);
+                });
+            })
+            ->exists();
+    }
+
     public function leaderboard(string $userId): array
     {
         $friendIds = FriendshipModel::query()
