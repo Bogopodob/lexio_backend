@@ -16,6 +16,6 @@ final readonly class ListCategoriesUseCase
      */
     public function handle(ListCategoriesCommand $command): array
     {
-        return $this->catalogRepository->listCategories($command->type, $command->locale, null, $command->systemOnly);
+        return $this->catalogRepository->listCategories($command->type, $command->locale, $command->ownerId, $command->systemOnly);
     }
 }

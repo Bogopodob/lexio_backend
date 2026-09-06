@@ -32,4 +32,31 @@ final readonly class ListCategoriesTake
 
         return CatalogResponseResource::make($data)->response();
     }
+
+    /**
+     * Own categories of the authenticated user. Needs no learning
+     * profile, unlike the progress-enriched listing.
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $userId = (string) $request->attributes->get('auth_user_id');
+        $locale = (string) $request->query('locale', 'ru');
+
+        $result = $this->useCase->handle(
+            new ListCategoriesCommand(
+                type: $request->query('type'),
+                locale: in_array($locale, ['ru', 'en'], true) ? $locale : 'ru',
+                ownerId: $userId,
+            )
+        );
+
+        $mine = array_values(array_filter(
+            $result,
+            fn ($c) => $c->userId === $userId,
+        ));
+
+        $data = array_map(fn ($c) => CategoryResource::make($c)->resolve($request), $mine);
+
+        return CatalogResponseResource::make($data)->response();
+    }
 }

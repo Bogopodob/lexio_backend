@@ -12,6 +12,7 @@ Route::prefix('catalog')->group(function (): void {
     Route::get('/entries/{entryId}', [CatalogController::class, 'show']);
 
     Route::middleware(['jwt.auth'])->group(function (): void {
+        Route::get('/categories/mine', [CatalogController::class, 'myCategories']);
         Route::post('/categories', [CatalogController::class, 'storeCategory']);
         Route::patch('/categories/{categoryId}', [CatalogController::class, 'updateCategory']);
         Route::delete('/categories/{categoryId}', [CatalogController::class, 'destroyCategory']);

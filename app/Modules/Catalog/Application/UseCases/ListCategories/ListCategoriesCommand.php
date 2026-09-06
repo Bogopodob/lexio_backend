@@ -8,5 +8,6 @@ final readonly class ListCategoriesCommand
         public ?string $type = null,
         public string $locale = 'ru',
         public bool $systemOnly = false,
+        public ?string $ownerId = null,
     ) {}
 }

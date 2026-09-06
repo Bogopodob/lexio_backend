@@ -201,6 +201,24 @@ class CatalogTest extends TestCase
         );
     }
 
+    public function test_mine_lists_only_own_categories(): void
+    {
+        $anna = $this->registerUser('mine-anna@example.com');
+        $boris = $this->registerUser('mine-boris@example.com');
+
+        $this->getJson('/api/catalog/categories/mine')->assertUnauthorized();
+
+        $catId = $this->withToken($anna['token'])->postJson('/api/catalog/categories', [
+            'name' => 'Моё',
+        ])->assertCreated()->json('data.id');
+
+        $mine = $this->withToken($anna['token'])->getJson('/api/catalog/categories/mine');
+        $mine->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $catId);
+
+        $theirs = $this->withToken($boris['token'])->getJson('/api/catalog/categories/mine');
+        $theirs->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_lists_languages(): void
     {
         $result = app(ListLanguagesUseCase::class)->handle(new ListLanguagesCommand);

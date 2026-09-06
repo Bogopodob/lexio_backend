@@ -37,6 +37,11 @@ final class CatalogController extends Controller
         return $this->listCategoriesTake->handle($request);
     }
 
+    public function myCategories(Request $request): JsonResponse
+    {
+        return $this->listCategoriesTake->mine($request);
+    }
+
     public function search(SearchEntriesRequest $request): JsonResponse
     {
         return $this->searchEntriesTake->handle($request);
