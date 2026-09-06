@@ -5,6 +5,7 @@ namespace App\Modules\Catalog\Providers;
 use App\Modules\Catalog\Domain\Ports\CatalogRepositoryInterface;
 use App\Modules\Catalog\Infrastructure\Console\Commands\CleanDataCommand;
 use App\Modules\Catalog\Infrastructure\Console\Commands\ImportIrregularVerbsCommand;
+use App\Modules\Catalog\Infrastructure\Console\Commands\ImportPhrasesCommand;
 use App\Modules\Catalog\Infrastructure\Console\Commands\ImportWordsCommand;
 use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\EloquentCatalogRepository;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,6 @@ final class CatalogProvider extends ServiceProvider
             ->prefix('api')
             ->group(app_path('Modules/Catalog/routes/router.php'));
 
-        $this->commands([ImportWordsCommand::class, ImportIrregularVerbsCommand::class, CleanDataCommand::class]);
+        $this->commands([ImportWordsCommand::class, ImportIrregularVerbsCommand::class, ImportPhrasesCommand::class, CleanDataCommand::class]);
     }
 }

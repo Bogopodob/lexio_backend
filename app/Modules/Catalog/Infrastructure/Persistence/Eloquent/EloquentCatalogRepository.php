@@ -93,6 +93,12 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             ->groupBy('category_id')
             ->pluck('total', 'category_id');
 
+        $phraseCounts = DB::table('phrases_categories')
+            ->selectRaw('category_id, COUNT(*) as total')
+            ->whereIn('category_id', $ids)
+            ->groupBy('category_id')
+            ->pluck('total', 'category_id');
+
         return $models->map(fn (CategoryModel $m) => new Category(
             id: (string) $m->id,
             parentId: $m->parent_id ? (string) $m->parent_id : null,
@@ -105,6 +111,7 @@ final class EloquentCatalogRepository implements CatalogRepositoryInterface
             sort: (int) $m->sort,
             name: $names->get((string) $m->id),
             entriesCount: (int) ($counts->get((string) $m->id) ?? 0),
+            phrasesCount: (int) ($phraseCounts->get((string) $m->id) ?? 0),
         ))->all();
     }
 

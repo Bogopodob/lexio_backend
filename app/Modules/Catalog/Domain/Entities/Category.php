@@ -16,5 +16,6 @@ final readonly class Category
         public int $sort,
         public ?string $name = null,
         public int $entriesCount = 0,
+        public int $phrasesCount = 0,
     ) {}
 }

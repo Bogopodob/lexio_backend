@@ -318,11 +318,67 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
         // Offset applies to the catalog part only.
         $own = $this->findNewOwnLearnables($profileId, $categoryId, max(0, $limit - count($deck)));
 
-        return array_merge($own, $deck);
+        // Catalog phrases close the deck (blocks like "Restaurant").
+        // Offset paginates them just like entries.
+        $phrases = $this->findNewCatalogPhrases($profileId, $categoryId, $level, max(0, $limit - count($deck) - count($own)), $offset);
+
+        return array_merge($own, $deck, $phrases);
+    }
+
+    /**
+     * Never-reviewed catalog phrases with both sides translated.
+     *
+     * @return list<array{learnable_type: string, learnable_id: string}>
+     */
+    private function findNewCatalogPhrases(string $profileId, ?string $categoryId, ?string $level, int $limit, int $offset = 0): array
+    {
+        if ($limit <= 0) {
+            return [];
+        }
+
+        $profile = ProfileModel::query()->find($profileId);
+
+        if (! $profile) {
+            return [];
+        }
+
+        $target = (string) $profile->target_language_id;
+        $native = (string) $profile->native_language_id;
+
+        return DB::table('phrases')
+            ->join('phrase_translations as target_t', function ($join) use ($target) {
+                $join->on('target_t.phrase_id', '=', 'phrases.id')
+                    ->where('target_t.language_id', '=', $target);
+            })
+            ->join('phrase_translations as native_t', function ($join) use ($native) {
+                $join->on('native_t.phrase_id', '=', 'phrases.id')
+                    ->where('native_t.language_id', '=', $native);
+            })
+            ->leftJoin('user_progresses', function ($join) use ($profileId) {
+                $join->on('user_progresses.learnable_id', '=', 'phrases.id')
+                    ->where('user_progresses.profile_id', '=', $profileId)
+                    ->where('user_progresses.learnable_type', '=', 'phrase');
+            })
+            ->whereNull('user_progresses.id')
+            ->when($level !== null, fn ($q) => $q->where('phrases.level', $level))
+            ->when($categoryId !== null, function ($q) use ($categoryId) {
+                $q->join('phrases_categories', 'phrases_categories.phrase_id', '=', 'phrases.id')
+                    ->where('phrases_categories.category_id', $categoryId);
+            })
+            ->orderBy('phrases.created_at')
+            ->limit(max(1, min(100, $limit)))
+            ->offset(max(0, $offset))
+            ->select('phrases.id')
+            ->distinct()
+            ->get()
+            ->map(fn ($r) => ['learnable_type' => 'phrase', 'learnable_id' => (string) $r->id])
+            ->all();
     }
 
     public function countNewEntries(string $profileId, ?string $categoryId, ?string $level): int
     {
+        $phrases = count($this->findNewCatalogPhrases($profileId, $categoryId, $level, 100));
+
         $catalog = DB::table('entries')
             ->leftJoin('user_progresses', function ($join) use ($profileId) {
                 $join->on('user_progresses.learnable_id', '=', 'entries.id')
@@ -337,7 +393,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             })
             ->count();
 
-        return $catalog + count($this->findNewOwnLearnables($profileId, $categoryId, 100));
+        return $catalog + $phrases + count($this->findNewOwnLearnables($profileId, $categoryId, 100));
     }
 
     /**

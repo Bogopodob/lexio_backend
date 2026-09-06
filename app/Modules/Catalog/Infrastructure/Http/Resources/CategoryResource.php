@@ -26,6 +26,7 @@ final class CategoryResource extends JsonResource
             'sort' => $this->category->sort,
             'name' => $this->category->name,
             'entries_count' => $this->category->entriesCount,
+            'phrases_count' => $this->category->phrasesCount,
         ];
     }
 }

@@ -17,7 +17,7 @@ final readonly class ListCategoriesWithProgressUseCase
     /**
      * Catalog categories enriched with the profile's learned counts.
      *
-     * @return list<array{id: string, parent_id: ?string, slug: string, type: string, color: ?string, icon: ?string, sort: int, name: ?string, entries_count: int, learned_count: int}>|null
+     * @return list<array{id: string, parent_id: ?string, slug: string, type: string, color: ?string, icon: ?string, sort: int, name: ?string, entries_count: int, phrases_count: int, learned_count: int}>|null
      */
     public function handle(ListCategoriesWithProgressCommand $command): ?array
     {
@@ -42,6 +42,7 @@ final readonly class ListCategoriesWithProgressUseCase
                 'sort' => $category->sort,
                 'name' => $category->name,
                 'entries_count' => $category->entriesCount,
+                'phrases_count' => $category->phrasesCount,
                 'learned_count' => $learned[$category->id] ?? 0,
             ];
         }
