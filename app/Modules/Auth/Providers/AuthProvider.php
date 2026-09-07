@@ -20,7 +20,10 @@ use App\Modules\Auth\Infrastructure\Services\LaravelEmailOtpSender;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\RevokedTokenStoreInterface;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\Contracts\TokenGeneratorInterface;
 use App\Shared\Laravel\Infrastructure\Security\Jwt\JwtTokenGenerator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 final class AuthProvider extends ServiceProvider
@@ -42,8 +45,37 @@ final class AuthProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(app_path('Modules/Auth/Infrastructure/Persistence/Database/Migrations'));
 
+        $this->registerRateLimiters();
+
         Route::middleware('api')
             ->prefix('api')
             ->group(app_path('Modules/Auth/routes/router.php'));
+    }
+
+    /**
+     * Brute-force protection: all auth endpoints are throttled per IP + email,
+     * so one attacker can't burn through the whole keyspace or mail-bomb anyone.
+     */
+    private function registerRateLimiters(): void
+    {
+        $emailKey = static fn (Request $request): string => mb_strtolower(trim((string) $request->input('email', '')));
+
+        $tooMany = static fn () => response()->json([
+            'success' => false,
+            'error' => 'rate_limited',
+            'message' => __('api.auth.too_many_attempts'),
+        ], 429);
+
+        RateLimiter::for('otp-request', static fn (Request $request) => Limit::perMinute(
+            max(1, (int) config('auth_rate_limits.otp_request_per_minute', 5))
+        )->by($request->ip().'|'.$emailKey($request))->response($tooMany));
+
+        RateLimiter::for('otp-verify', static fn (Request $request) => Limit::perMinute(
+            max(1, (int) config('auth_rate_limits.otp_verify_per_minute', 10))
+        )->by($request->ip().'|'.$emailKey($request))->response($tooMany));
+
+        RateLimiter::for('auth-password', static fn (Request $request) => Limit::perMinute(
+            max(1, (int) config('auth_rate_limits.password_per_minute', 10))
+        )->by($request->ip().'|'.$emailKey($request))->response($tooMany));
     }
 }

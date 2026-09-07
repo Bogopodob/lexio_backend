@@ -11,5 +11,5 @@ interface EmailOtpSenderInterface
      *
      * @return string The mailer name used to send the email
      */
-    public function sendCode(string $service, EmailProviderIdValueObject $email, string $code, ?string $locale = null): string;
+    public function sendCode(string $service, EmailProviderIdValueObject $email, string $code, ?string $locale = null, bool $isNewUser = false): string;
 }

@@ -5,6 +5,8 @@ namespace App\Modules\Auth\Application\UseCases\Auth\LoginByEmailOtp;
 use App\Modules\Auth\Application\DTO\AuthResult;
 use App\Modules\Auth\Application\Exceptions\InvalidCredentialsException;
 use App\Modules\Auth\Application\Exceptions\InvalidOtpCodeException;
+use App\Modules\Auth\Application\Exceptions\TooManyOtpAttemptsException;
+use App\Modules\Auth\Domain\OtpCheckResult;
 use App\Modules\Auth\Domain\Ports\AuthUserRepositoryInterface;
 use App\Modules\Auth\Domain\Ports\OtpCodeStoreInterface;
 use App\Modules\Auth\Domain\Ports\TokenIssuerInterface;
@@ -22,8 +24,11 @@ final readonly class VerifyEmailCodeUseCase
     {
         $email = EmailProviderIdValueObject::fromString($command->email);
 
-        $valid = $this->otpStore->verifyAndForget($this->otpKey($email), $command->code);
-        if (! $valid) {
+        $check = $this->otpStore->attempt($this->otpKey($email), $command->code);
+        if ($check === OtpCheckResult::Burned) {
+            throw new TooManyOtpAttemptsException('Too many wrong OTP attempts');
+        }
+        if ($check !== OtpCheckResult::Valid) {
             throw new InvalidOtpCodeException('Invalid or expired OTP code');
         }
 

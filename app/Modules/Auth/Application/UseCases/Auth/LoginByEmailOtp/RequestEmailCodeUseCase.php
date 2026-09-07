@@ -25,7 +25,9 @@ final readonly class RequestEmailCodeUseCase
         $email = EmailProviderIdValueObject::fromString($command->email);
         $user = $this->users->findByEmail($email);
 
-        if ($user === null) {
+        $isNewUser = $user === null;
+
+        if ($isNewUser) {
             $this->users->createWithEmail(name: 'User', email: $email);
         }
 
@@ -33,7 +35,7 @@ final readonly class RequestEmailCodeUseCase
         $code = (string) random_int(100000, 999999);
 
         $this->otpStore->put($this->otpKey($email), $code, $ttl);
-        $provider = $this->emailOtpSender->sendCode('login', $email, $code, $command->locale);
+        $provider = $this->emailOtpSender->sendCode('login', $email, $code, $command->locale, $isNewUser);
 
         return new RequestEmailCodeResult(
             ttl: $ttl,

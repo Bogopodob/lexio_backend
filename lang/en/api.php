@@ -64,6 +64,9 @@ return [
         'invalid_subject' => 'Invalid token subject',
         'ip_mismatch' => 'IP mismatch',
         'forbidden' => 'You can only access your own resources',
+        'too_many_attempts' => 'Too many attempts. Wait a minute and try again.',
+        'code_invalid' => 'Invalid or expired code.',
+        'code_burned' => 'Too many wrong attempts. Request a new code.',
     ],
 
     'internal_api' => [
