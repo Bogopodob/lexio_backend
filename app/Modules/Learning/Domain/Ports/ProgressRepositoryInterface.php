@@ -27,9 +27,9 @@ interface ProgressRepositoryInterface
     public function accuracyStats(string $profileId): array;
 
     /**
-     * Learned entries (repetition > 0) grouped by catalog category.
+     * Learned entries/phrases (repetition > 0) grouped by catalog category.
      *
-     * @return array<string, int> category_id => distinct entries count
+     * @return array<string, int> category_id => distinct learnables count
      */
     public function countLearnedByCategory(string $profileId): array;
 }

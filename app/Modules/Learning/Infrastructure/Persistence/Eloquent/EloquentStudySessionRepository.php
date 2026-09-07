@@ -368,7 +368,7 @@ final class EloquentStudySessionRepository implements StudySessionRepositoryInte
             ->orderBy('phrases.created_at')
             ->limit(max(1, min(100, $limit)))
             ->offset(max(0, $offset))
-            ->select('phrases.id')
+            ->select('phrases.id', 'phrases.created_at')
             ->distinct()
             ->get()
             ->map(fn ($r) => ['learnable_type' => 'phrase', 'learnable_id' => (string) $r->id])

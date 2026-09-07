@@ -109,6 +109,24 @@ final class EloquentProgressRepository implements ProgressRepositoryInterface
             $result[(string) $row->category_id] = (int) $row->total;
         }
 
+        // Catalog phrases (blocks like "Restaurant") live in phrases_categories,
+        // so without this branch phrase bands would show 0% forever.
+        $phraseRows = ProgressModel::query()
+            ->join('phrases_categories', function ($join) {
+                $join->on('phrases_categories.phrase_id', '=', 'user_progresses.learnable_id')
+                    ->where('user_progresses.learnable_type', '=', 'phrase');
+            })
+            ->where('user_progresses.profile_id', $profileId)
+            ->where('user_progresses.repetition', '>', 0)
+            ->selectRaw('phrases_categories.category_id, COUNT(DISTINCT user_progresses.learnable_id) as total')
+            ->groupBy('phrases_categories.category_id')
+            ->get();
+
+        foreach ($phraseRows as $row) {
+            $key = (string) $row->category_id;
+            $result[$key] = ($result[$key] ?? 0) + (int) $row->total;
+        }
+
         return $result;
     }
 
