@@ -22,7 +22,7 @@ class AuthCodeMailTest extends TestCase
         Mail::assertSent(AuthCodeMail::class, function (AuthCodeMail $mail): bool {
             return $mail->isNewUser === true
                 && mb_strlen($mail->code) === 6
-                && str_contains($mail->envelope()->subject, 'Qwicki');
+                && str_contains($mail->envelope()->subject, 'Lexio');
         });
     }
 
@@ -49,7 +49,7 @@ class AuthCodeMailTest extends TestCase
 
         $html = $mail->render();
 
-        $this->assertStringContainsString('Добро пожаловать в Qwicki', $html);
+        $this->assertStringContainsString('Добро пожаловать в Lexio', $html);
         $this->assertStringContainsString('4', $html);
         $this->assertStringContainsString('8', $html);
         $this->assertStringContainsString('Что тебя ждёт', $html);

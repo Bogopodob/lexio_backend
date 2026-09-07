@@ -21,10 +21,10 @@
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#5AD4B5,#5B74FF);font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:900;color:#062a20;">
-                    Q
+                    L
                   </td>
                   <td style="padding-left:12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">
-                    Qwicki
+                    Lexio
                   </td>
                 </tr>
               </table>

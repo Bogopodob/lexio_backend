@@ -38,10 +38,10 @@
 ---
 
 ### [DOCS-001] Порядок в backend/agent (было от другого проекта)
-- **Подробное описание**: переписать доки под qwicki, структуру DDD-каркаса сохранить
+- **Подробное описание**: переписать доки под lexio, структуру DDD-каркаса сохранить
 - **Приоритет**: medium
 - **Статус**: done
-- **Что сделано**: AGENTS.md (пути qwicki, команды q_php), TECHSTACK.md (реальные зависимости + фронт), LINKS.md, ARCHITECTURE.md (модули Auth/User/Catalog/Learning/Library, конвенция Take), DB_SCHEMA.md (вся схема qwicki), CURRENT-SPRINT.md, CHECK_SECURITY.md + scope SECURITY_PLAYBOOK.md (PII вместо PHI), IMPLEMENTED_CONCEPT.md и LINKEDIN_ARTICLE.md переписаны под изучение языков
+- **Что сделано**: AGENTS.md (пути lexio, команды lexio_php), TECHSTACK.md (реальные зависимости + фронт), LINKS.md, ARCHITECTURE.md (модули Auth/User/Catalog/Learning/Library, конвенция Take), DB_SCHEMA.md (вся схема lexio), CURRENT-SPRINT.md, CHECK_SECURITY.md + scope SECURITY_PLAYBOOK.md (PII вместо PHI), IMPLEMENTED_CONCEPT.md и LINKEDIN_ARTICLE.md переписаны под изучение языков
 
 ### [FEAT-001] Язык = профиль, цели, достижения, статистика по профилям
 - **Статус**: done
@@ -54,6 +54,11 @@
 - **Backend**: `friendships` (requester/addressee/status + unique, User-модуль); UseCases Send/List/Answer/Remove/Search (встречная заявка = авто-принятие, ответить может только адресат, удалить — любая сторона); API `GET|POST /users/{id}/friends[/requests]`, `POST .../requests/{rid}/accept|decline`, `DELETE .../{fid}`, `GET .../search` (имя/email, min 2 символа, relation в выдаче); список друзей обогащён (имя, аватар, уровень активного профиля, стрик)
 - **Frontend**: блок «Друзья учат» на API — дебаунс-поиск, бейджи relation, входящие заявки с принять/отклонить, удаление; гости — моки как раньше
 - **Проверено**: live-цикл заявка → принятие → список с уровнем/стриком; тесты 48/48; pint 349 PASS; фронт build чист
+
+### [OPS-001] Переименование qwicki → Lexio
+- **Статус**: done
+- **Что сделано**: продукт (титул, бренд Auth, письма + логотип L, `APP_NAME=Lexio`), localStorage-ключи `qwicki*` → `lexio*` (нужен повторный вход), package `lexio-frontend`, инфра (`lexio_*` контейнеры/сеть, БД/пользователь `lexio`, бэкап `/tmp/opencode/lexio_backup.sql` залит 1-в-1: 12 phrase-категорий, 113 фраз, 5 юзеров), доки agent/**
+- **Проверено**: `rg -i qwick` пуст; tsc чист; фронт build чист; `AuthCodeMailTest|OtpAbuseProtectionTest|PremiumTest` 9/9; smoke `/`, `/learn`, `request-code` 200, письмо «Добро пожаловать в Lexio!»; старые `qwick_*` вольюмы/образы удалены
 
 ## Закрыто (архивная сводка, детали — в git-истории)
 

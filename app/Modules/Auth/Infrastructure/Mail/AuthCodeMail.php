@@ -41,10 +41,10 @@ class AuthCodeMail extends Mailable
     {
         if ($this->lang === 'en') {
             return [
-                'subject' => 'Welcome to Qwicki! Your login code inside',
+                'subject' => 'Welcome to Lexio! Your login code inside',
                 'preheader' => 'Your dictionary is ready — here is your login code.',
                 'badge' => 'Welcome aboard',
-                'heading' => 'Welcome to Qwicki!',
+                'heading' => 'Welcome to Lexio!',
                 'intro' => 'Your account is created. Enter this code to dive into words — no passwords needed, ever.',
                 'codeLabel' => 'Your login code',
                 'expires' => "The code lives for {$this->ttlMinutes} min.",
@@ -56,15 +56,15 @@ class AuthCodeMail extends Mailable
                 'perk3' => 'Living phrases',
                 'perk3Sub' => 'café, travel, life',
                 'ignore' => 'If this wasn’t you, just ignore this email.',
-                'footer' => 'Qwicki • learn languages',
+                'footer' => 'Lexio • learn languages',
             ];
         }
 
         return [
-            'subject' => 'Добро пожаловать в Qwicki! Твой код входа внутри',
+            'subject' => 'Добро пожаловать в Lexio! Твой код входа внутри',
             'preheader' => 'Аккаунт готов — вот твой код входа.',
             'badge' => 'Ты с нами',
-            'heading' => 'Добро пожаловать в Qwicki!',
+            'heading' => 'Добро пожаловать в Lexio!',
             'intro' => 'Аккаунт создан. Введи этот код, чтобы нырнуть в слова — пароли больше вообще не нужны.',
             'codeLabel' => 'Твой код входа',
             'expires' => "Код живёт {$this->ttlMinutes} мин.",
@@ -76,7 +76,7 @@ class AuthCodeMail extends Mailable
             'perk3' => 'Живые фразы',
             'perk3Sub' => 'кафе, поездки, жизнь',
             'ignore' => 'Если это были не вы — просто проигнорируйте письмо.',
-            'footer' => 'Qwicki • учи языки',
+            'footer' => 'Lexio • учи языки',
         ];
     }
 
@@ -85,7 +85,7 @@ class AuthCodeMail extends Mailable
     {
         if ($this->lang === 'en') {
             return [
-                'subject' => 'Your Qwicki login code',
+                'subject' => 'Your Lexio login code',
                 'preheader' => 'Here is your one-time login code.',
                 'badge' => 'Login',
                 'heading' => 'Welcome back!',
@@ -100,12 +100,12 @@ class AuthCodeMail extends Mailable
                 'perk3' => '',
                 'perk3Sub' => '',
                 'ignore' => 'If this wasn’t you, just ignore this email.',
-                'footer' => 'Qwicki • learn languages',
+                'footer' => 'Lexio • learn languages',
             ];
         }
 
         return [
-            'subject' => 'Твой код входа в Qwicki',
+            'subject' => 'Твой код входа в Lexio',
             'preheader' => 'Вот твой одноразовый код входа.',
             'badge' => 'Вход',
             'heading' => 'С возвращением!',
@@ -120,7 +120,7 @@ class AuthCodeMail extends Mailable
             'perk3' => '',
             'perk3Sub' => '',
             'ignore' => 'Если это были не вы — просто проигнорируйте письмо.',
-            'footer' => 'Qwicki • учи языки',
+            'footer' => 'Lexio • учи языки',
         ];
     }
 }

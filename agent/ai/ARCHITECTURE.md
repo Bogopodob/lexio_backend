@@ -141,7 +141,7 @@ Infrastructure **не должна определять бизнес-прави�
 - route handlers;
 - serialization.
 
-Типичный поток (конвенция qwicki — слой Take между Controller и UseCase):
+Типичный поток (конвенция lexio — слой Take между Controller и UseCase):
 
 ```text
 Request (FormRequest-валидация)
@@ -231,7 +231,7 @@ app/Modules/
 app/Modules/Learning/
 ```
 
-Фактический инвентарь модулей qwicki: `Auth`, `User`, `Catalog`, `Learning`, `Library` (+ кросс-каттинговый `Shared`).
+Фактический инвентарь модулей lexio: `Auth`, `User`, `Catalog`, `Learning`, `Library` (+ кросс-каттинговый `Shared`).
 
 Стандартная структура:
 

@@ -16,14 +16,14 @@ final class LaravelEmailOtpSender implements EmailOtpSenderInterface
         $servicePath = 'auth_email.services.'.$serviceKey;
         $mailer = trim((string) config($servicePath.'.mailer', config('auth_email.default_mailer', config('mail.default', 'log'))));
         $fromAddress = trim((string) config($servicePath.'.from.address', config('mail.from.address', 'hello@example.com')));
-        $fromName = (string) config($servicePath.'.from.name', config('mail.from.name', 'Qwicki'));
+        $fromName = (string) config($servicePath.'.from.name', config('mail.from.name', 'Lexio'));
 
         if ($mailer === '') {
             throw new InvalidArgumentException('Email OTP mailer is not configured');
         }
 
         if ($fromName === '' || $fromName === 'Laravel') {
-            $fromName = 'Qwicki';
+            $fromName = 'Lexio';
         }
 
         $ttl = (int) config('auth_email.otp_ttl_seconds', (int) config('auth_countries.otp_ttl_seconds', 300));

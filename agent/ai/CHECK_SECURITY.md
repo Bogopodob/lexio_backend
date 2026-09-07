@@ -1,6 +1,6 @@
 # Laravel API Security Checklist
 
-> Версия 2.0 · qwicki (см. детали в SECURITY_PLAYBOOK.md, раздел 0 — обязательный ритуал после AI-сессий)
+> Версия 2.0 · lexio (см. детали в SECURITY_PLAYBOOK.md, раздел 0 — обязательный ритуал после AI-сессий)
 
 ## После каждого сеанса вайбкодинга
 

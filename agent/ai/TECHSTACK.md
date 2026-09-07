@@ -3,9 +3,9 @@
 ## Языки и рантайм
 | Компонент | Версия |
 |---|---|
-| PHP | 8.5 (`q_php`, образ `qwick-php`) |
+| PHP | 8.5 (`lexio_php`, образ `lexio-php`) |
 | Node | 22 (frontend) |
-| БД (основная) | PostgreSQL 17 (`q_postgres`, база `qwick`) — миграции/сиды/импорт идут через неё |
+| БД (основная) | PostgreSQL 17 (`lexio_postgres`, база `lexio`) — миграции/сиды/импорт идут через неё |
 | БД (тесты) | sqlite `:memory:` (см. `phpunit.xml`) |
 
 ## Фреймворки
@@ -42,7 +42,7 @@
 - **ramsey/uuid** (`^4.9`, прямая зависимость) — `Uuid::uuid4()` в сидах/репозиториях.
 
 ## Инфраструктура
-- Docker: `q_php` (PHP 8.5), `q_nginx` (:8080), `q_postgres` (PostgreSQL 17, :5432) — основная БД backend.
+- Docker: `lexio_php` (PHP 8.5), `lexio_nginx` (:8080), `lexio_postgres` (PostgreSQL 17, :5432) — основная БД backend.
 - CI: `.github/workflows/ci.yml` — backend (install → pint → migrate → seed → test), frontend (install → build).
 
 ## Правило добавления новых зависимостей
