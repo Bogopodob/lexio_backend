@@ -60,6 +60,12 @@
 - **Что сделано**: продукт (титул, бренд Auth, письма + логотип L, `APP_NAME=Lexio`), localStorage-ключи `qwicki*` → `lexio*` (нужен повторный вход), package `lexio-frontend`, инфра (`lexio_*` контейнеры/сеть, БД/пользователь `lexio`, бэкап `/tmp/opencode/lexio_backup.sql` залит 1-в-1: 12 phrase-категорий, 113 фраз, 5 юзеров), доки agent/**
 - **Проверено**: `rg -i qwick` пуст; tsc чист; фронт build чист; `AuthCodeMailTest|OtpAbuseProtectionTest|PremiumTest` 9/9; smoke `/`, `/learn`, `request-code` 200, письмо «Добро пожаловать в Lexio!»; старые `qwick_*` вольюмы/образы удалены
 
+### [OPS-002] Прод-деплой Lexio на VPS (рядом с curatio)
+- **Статус**: in_progress (бандл готов, ждёт VPS: DNS + panel SSL + deploy-ключ)
+- **Что сделано**: `infractructure/prod/` — compose (nginx+php+postgres, без dev, порт только 127.0.0.1:8081), `nginx/app.conf` + `api.conf` по образцу curatio, `Dockerfile`-билд фронта не нужен (dist собирается в deploy.sh), `host-nginx-lexio.conf.example`, `.env.example`, идемпотентный `deploy.sh`, README-ранбук; `backend/config/cors.php` + trustProxies/HandleCors в bootstrap (нужно для схемы app.* → api.*)
+- **Проверено**: `bash -n`, `php -l`, тесты 7/7, живой CORS-preflight 204 локально
+- **Осталось на VPS**: A-записи app/api.lexio.curatio.space, серты панели на ОБА хоста (`*.curatio.space` двухуровневые имена не покрывает), `bash deploy.sh [--seed]`, smoke + регресс curatio
+
 ## Закрыто (архивная сводка, детали — в git-истории)
 
 - **Phase 0 — гигиена**: починены падающие миграции (entries/phrases/categories/learning/auth-down), порядок `users` раньше зависимых, провайдеры Catalog/Learning/Library, сиды (5 языков, 80 категорий), smoke-тест схемы.

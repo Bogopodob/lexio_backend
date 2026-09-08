@@ -25,6 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'premium' => PremiumRequiredMiddleware::class,
         ]);
         $middleware->appendToGroup('api', SetLocaleMiddleware::class);
+        // Split-host production (app.* → api.*) runs behind the host nginx:
+        // trust its X-Forwarded-* headers and answer CORS preflights.
+        // Published container ports are bound to 127.0.0.1 (see prod compose),
+        // so trusting proxies is safe here.
+        $middleware->trustProxies(at: '*');
+        $middleware->prependToGroup('api', \Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $otpError = static fn (Request $request, string $error, string $message) => $request->is('api/*')
