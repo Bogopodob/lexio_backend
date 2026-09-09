@@ -18,6 +18,7 @@ final class RequestEmailCodeResultResource extends JsonResource
             'success' => true,
             'data' => [
                 'expires_in' => $this->result->ttl,
+                'resend_after' => $this->result->resendAfter,
                 'debug_code' => $this->result->debugCode,
                 'delivery' => [
                     'channel' => $this->result->deliveryChannel,

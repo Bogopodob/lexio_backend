@@ -9,5 +9,6 @@ final readonly class RequestEmailCodeResult
         public ?string $debugCode,
         public string $deliveryChannel,
         public string $deliveryProvider,
+        public int $resendAfter = 60,
     ) {}
 }

@@ -2,6 +2,7 @@
 
 use App\Modules\Auth\Application\Exceptions\InvalidOtpCodeException;
 use App\Modules\Auth\Application\Exceptions\TooManyOtpAttemptsException;
+use App\Modules\Auth\Application\Exceptions\TooManyOtpRequestsException;
 use App\Shared\Laravel\Infrastructure\Security\Middleware\EnsureRouteUserMatchesToken;
 use App\Shared\Laravel\Infrastructure\Security\Middleware\JwtAuthenticateMiddleware;
 use App\Shared\Laravel\Infrastructure\Security\Middleware\PremiumRequiredMiddleware;
@@ -42,5 +43,17 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         $exceptions->render(function (InvalidOtpCodeException $e, Request $request) use ($otpError) {
             return $otpError($request, 'code_invalid', __('api.auth.code_invalid'));
+        });
+        $exceptions->render(function (TooManyOtpRequestsException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'rate_limited',
+                'message' => __('api.auth.too_many_codes', ['seconds' => $e->retryAfter]),
+                'retry_after' => $e->retryAfter,
+            ], 429)->header('Retry-After', (string) $e->retryAfter);
         });
     })->create();

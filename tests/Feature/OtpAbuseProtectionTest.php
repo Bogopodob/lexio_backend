@@ -12,6 +12,8 @@ class OtpAbuseProtectionTest extends TestCase
     public function test_request_code_is_throttled(): void
     {
         config(['auth_rate_limits.otp_request_per_minute' => 3]);
+        config(['auth_rate_limits.otp_resend_cooldown_seconds' => 0]);
+        config(['auth_rate_limits.otp_max_per_hour' => 100]);
 
         for ($i = 0; $i < 3; $i++) {
             $this->postJson('/api/email/request-code', ['email' => 'spam@example.com'])
@@ -46,6 +48,7 @@ class OtpAbuseProtectionTest extends TestCase
     {
         config(['auth_rate_limits.otp_max_attempts' => 3]);
         config(['auth_rate_limits.otp_verify_per_minute' => 100]);
+        config(['auth_rate_limits.otp_resend_cooldown_seconds' => 0]);
 
         $code = $this->postJson('/api/email/request-code', ['email' => 'burn@example.com'])
             ->assertOk()
@@ -86,6 +89,39 @@ class OtpAbuseProtectionTest extends TestCase
         }
 
         $this->postJson('/api/login', ['email' => 'nobody@example.com', 'password' => 'wrongpass1'])
+            ->assertStatus(429)
+            ->assertJsonPath('error', 'rate_limited');
+    }
+
+    public function test_resend_cooldown_blocks_immediate_second_request(): void
+    {
+        config(['auth_rate_limits.otp_resend_cooldown_seconds' => 60]);
+        config(['auth_rate_limits.otp_max_per_hour' => 100]);
+        config(['auth_rate_limits.otp_request_per_minute' => 100]);
+
+        $this->postJson('/api/email/request-code', ['email' => 'cooldown@example.com'])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['expires_in', 'resend_after']]);
+
+        // Bypass attempt via direct second call (like curl, no frontend timer).
+        $this->postJson('/api/email/request-code', ['email' => 'cooldown@example.com'])
+            ->assertStatus(429)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error', 'rate_limited')
+            ->assertJsonStructure(['retry_after']);
+    }
+
+    public function test_hourly_cap_blocks_mail_bombing(): void
+    {
+        config(['auth_rate_limits.otp_resend_cooldown_seconds' => 0]);
+        config(['auth_rate_limits.otp_max_per_hour' => 2]);
+        config(['auth_rate_limits.otp_request_per_minute' => 100]);
+
+        $this->postJson('/api/email/request-code', ['email' => 'hourly@example.com'])->assertOk();
+        $this->postJson('/api/email/request-code', ['email' => 'hourly@example.com'])->assertOk();
+
+        $this->postJson('/api/email/request-code', ['email' => 'hourly@example.com'])
             ->assertStatus(429)
             ->assertJsonPath('error', 'rate_limited');
     }

@@ -28,6 +28,7 @@ class AuthCodeMailTest extends TestCase
 
     public function test_existing_email_gets_code_only_letter(): void
     {
+        config(['auth_rate_limits.otp_resend_cooldown_seconds' => 0]);
         Mail::fake();
 
         $this->postJson('/api/email/request-code', ['email' => 'regular@example.com'])
