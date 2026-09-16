@@ -6,7 +6,9 @@ use App\Modules\User\Domain\Entities\UserAccount;
 use App\Modules\User\Domain\Ports\UserAccountRepositoryInterface;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\User as UserModel;
 use App\Modules\User\Infrastructure\Persistence\Eloquent\Models\UserProfile as UserProfileModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Eloquent\Models\Language;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class EloquentUserAccountRepository implements UserAccountRepositoryInterface
 {
@@ -41,8 +43,36 @@ final class EloquentUserAccountRepository implements UserAccountRepositoryInterf
                 ['name' => $displayName],
             );
 
+            $this->createDefaultLanguageProfile($id);
+
             return $this->toDomain($user);
         });
+    }
+
+    /**
+     * New users get a ready-to-use English learning profile so the app
+     * works (and the catalog renders) right after registration.
+     */
+    private function createDefaultLanguageProfile(string $userId): void
+    {
+        $target = Language::query()->where('code', 'en')->first();
+        $native = Language::query()->where('code', 'ru')->first();
+
+        if (! $target || ! $native) {
+            return;
+        }
+
+        DB::table('user_language_profiles')->insertOrIgnore([
+            'id' => (string) Str::uuid(),
+            'user_id' => $userId,
+            'target_language_id' => (string) $target->id,
+            'native_language_id' => (string) $native->id,
+            'level' => 'A2',
+            'daily_goal' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function toDomain(UserModel $user): UserAccount

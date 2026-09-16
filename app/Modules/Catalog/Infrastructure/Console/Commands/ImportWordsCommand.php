@@ -142,9 +142,16 @@ class ImportWordsCommand extends Command
         $files = [];
 
         foreach ($disk->allFiles($base) as $path) {
-            if (preg_match('/\.(xlsx|csv)$/iu', $path)) {
-                $files[] = $path;
+            if (! preg_match('/\.(xlsx|csv)$/iu', $path)) {
+                continue;
             }
+
+            // The irregular-verbs transcription cache is not a dictionary.
+            if (str_starts_with(basename($path), 'irregular-transcriptions')) {
+                continue;
+            }
+
+            $files[] = $path;
         }
 
         sort($files);
@@ -154,7 +161,13 @@ class ImportWordsCommand extends Command
 
     private function importFile($disk, string $file, string $enId, string $ruId, bool $dryRun): void
     {
+        $this->info(sprintf('Processing: %s (parsing...)', $file));
+
         $rows = $this->readRows($disk, $file);
+        $total = count($rows);
+
+        $this->line(sprintf('  parsed %d rows', $total));
+
         $limit = $this->option('limit') !== null ? (int) $this->option('limit') : null;
 
         if ($limit !== null) {
@@ -167,8 +180,12 @@ class ImportWordsCommand extends Command
         $created = 0;
         $rank = 0;
 
-        foreach ($rows as $row) {
+        foreach ($rows as $i => $row) {
             $rank++;
+
+            if (($i + 1) % 1000 === 0) {
+                $this->line(sprintf('  %s: %d/%d rows', $file, $i + 1, $total));
+            }
 
             $enText = $this->clean($row['en'] ?? '');
             $ruText = $this->clean($row['ru'] ?? '');

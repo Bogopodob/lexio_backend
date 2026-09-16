@@ -1,58 +1,136 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <span style="font-size:52px;font-weight:900;background:linear-gradient(135deg,#5AD4B5 0%,#5B74FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent;">◈ LEXIO API</span>
+  <br/>
+  <span style="font-size:20px;color:#94a3b8;">Backend · Laravel 13 · модульный монолит</span>
 </p>
 
-## About Laravel
+<p align="center">
+  <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-5ad4b5?style=for-the-badge&logo=laravel&logoColor=white&labelColor=0f0f0f">
+  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.5-5b74ff?style=for-the-badge&logo=php&logoColor=white&labelColor=0f0f0f">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-17-5ad4b5?style=for-the-badge&logo=postgresql&logoColor=white&labelColor=0f0f0f">
+  <img alt="JWT" src="https://img.shields.io/badge/JWT-auth-5b74ff?style=for-the-badge&logo=jsonwebtokens&logoColor=white&labelColor=0f0f0f">
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p align="center">
+  <img alt="Sanctum" src="https://img.shields.io/badge/Sanctum-tokens-0f0f0f?style=flat-square&labelColor=5ad4b5">
+  <img alt="PhpSpreadsheet" src="https://img.shields.io/badge/PhpSpreadsheet-import-0f0f0f?style=flat-square&labelColor=5b74ff">
+  <img alt="Private" src="https://img.shields.io/badge/status-private-0f0f0f?style=flat-square&labelColor=94a3b8">
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> REST API языкового тренажёра **Lexio**. Модульный манолит: Auth, Catalog, Learning, Library, User. Запускается в docker-стеке из [репозитория `infractructure`](https://github.com/Bogopodob/lexio_infractructure) — отдельно поднимать Dockerfile не нужно.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🖼️ Интерфейс приложения
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+<div align="center">
+  <img src="app_preview_1.png" width="100%" style="border-radius:14px;border:1px solid #2b2b2b;box-shadow:0 20px 60px rgba(0,0,0,.6);"/>
+  <br/><br/>
+  <img src="app_preview_2.png" width="100%" style="border-radius:14px;border:1px solid #2b2b2b;box-shadow:0 20px 60px rgba(0,0,0,.6);"/>
+  <br/><br/>
+  <img src="app_preview_3.png" width="100%" style="border-radius:14px;border:1px solid #2b2b2b;box-shadow:0 20px 60px rgba(0,0,0,.6);"/>
+  <br/><br/>
+  <img src="app_preview_4.png" width="100%" style="border-radius:14px;border:1px solid #2b2b2b;box-shadow:0 20px 60px rgba(0,0,0,.6);"/>
+  <br/>
+</div>
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+> Нажми на скриншот — откроется в полном размере (~3600px).
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+Словари с переводами, интервальные повторения, достижения, серии, фразы, медиа и звук — всё это обслуживает единый API на Laravel:
 
-## Agentic Development
+- **JWT-аутентификация** (пароль + email-OTP), токены доступа;
+- **Каталог**: словари по языкам и категориям, поиск, word-of-the-day, квиз-раунды;
+- **Обучение**: профили языков (target/native), карточки, ревью, цели, достижения, статистика, еженедельная активность, лидерборд;
+- **Библиотека**: личные карточки/фразы, медиа, озвучка и транскрибация, расшаривание контента;
+- **Профиль**: аватар, друзья, подписка premium.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+---
+
+## 🧱 Модули
+
+| Модуль | Префикс | Содержимое |
+|---|---|---|
+| `Auth` | `/auth` | register, login, email-code, verify, me, logout |
+| `Catalog` | `/catalog` | languages, categories, entries, search, word-of-day, quiz-round |
+| `Learning` | `/learning/users/{id}/profiles/{id}` | карточки, сессии, ревью, цели, достижения, stats, weekly |
+| `Library` | `/library/users/{id}` | личные entries/phrases, media, speak/transcribe, shares |
+| `User` | `/users/{id}` | профиль, avatar, друзья, leaderboard, search |
+
+## ⚙️ Консольные команды
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan migrate                    # весь каталог + сидеры + импорты — одним запуском
+php artisan db:seed                    # сидеры всех модулей (languages/categories/achievements)
+php artisan catalog:import-words       # импорт словарей из storage/.../words/*.csv|xlsx
+php artisan catalog:import-phrases     # фразы из worlds.md
+php artisan catalog:import-irregular-verbs
+php artisan catalog:clean-data --fix   # очистка и нормализация данных
+php artisan user:grant-premium         # выдать premium-доступ пользователю
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+> 💡 **Одна миграция вместо десятков команд.** `2026_09_16_000000_seed_modules_and_run_commands::up()` сам запускает все сидеры модулей и тяжёлые импорты (с живым пофайловым прогрессом) — после `migrate` база полностью готова, без шаманства.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🚀 Как запустить
 
-## Code of Conduct
+### Стек (рекомендуется)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Backend собирается и живёт внутри docker-стека из отдельного репозитория [lexio_infractructure](https://github.com/Bogopodob/lexio_infractructure):
 
-## Security Vulnerabilities
+```bash
+git clone git@github.com:Bogopodob/lexio_backend.git
+git clone git@github.com:Bogopodob/lexio_infractructure.git
+cd infractructure
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+make up                      # dev-стек (php + vite + nginx + postgres + rabbitmq + xdebug)
+make backend-shell           # шелл в php-контейнер → дальше php artisan ...
+```
 
-## License
+Прод-стек — тот же репозиторий, без dev-сервисов:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker compose --env-file .env -f docker-compose.yml up -d --build
+```
+
+### Локально (без Docker)
+
+```bash
+composer install
+cp .env.example .env && php artisan key:generate
+
+# в .env: DB_HOST=127.0.0.1, DB_DATABASE=lexio, DB_USERNAME=lexio, DB_PASSWORD=<твой пароль>
+composer run setup           # install + key + migrate (+ npm build фронта)
+# или вручную:
+php artisan migrate --force && php artisan db:seed --force
+
+php artisan serve            # http://localhost:8000
+```
+
+### Окружение
+
+Ключевые переменные `backend/.env`:
+
+| Переменная | Значение по умолчанию | Комментарий |
+|---|---|---|
+| `DB_HOST` | `lexio_postgres` | имя контейнера postgres |
+| `DB_DATABASE` / `DB_USERNAME` | `lexio` / `lexio` | — |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:8080,http://localhost:5173` | Vite 5173, или `http://app.lexio.curatio.space:81` |
+| `MAIL_MAILER` | `log` | заменить на SMTP перед продакшеном |
+| `QUEUE_CONNECTION` | `database` | очередь заказов/сессий |
+
+---
+
+## 🔗 Ссылки
+
+| Репозиторий | Назначение |
+|---|---|
+| [lexio_backend](https://github.com/Bogopodob/lexio_backend) | этот проект |
+| [lexio_frontend](https://github.com/Bogopodob/lexio_frontend) | SPA на React (порт 5173) |
+| [lexio_infractructure](https://github.com/Bogopodob/lexio_infractructure) | docker-compose dev/prod, Makefile, deploy.sh |
+
+---
+
+<p align="center">
+  <span style="color:#5ad4b5;">◈</span> <span style="color:#94a3b8;">Lexio API — обратная сторона красивой выучки</span>
+</p>
